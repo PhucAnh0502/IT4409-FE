@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router"
 import Navbar from "./components/Navbar"
 import { Toaster } from "react-hot-toast"
 import LoginPage from "./pages/LoginPage"
+import SignUpPage from "./pages/SignUpPage"
 
 function App() {
 
@@ -11,6 +12,7 @@ function App() {
 
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
       </Routes>
 
       <Toaster />
