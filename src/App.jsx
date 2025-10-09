@@ -1,7 +1,20 @@
+import { Routes, Route } from "react-router"
+import Navbar from "./components/Navbar"
+import { Toaster } from "react-hot-toast"
+import LoginPage from "./pages/LoginPage"
+
 function App() {
 
   return (
-    <div className="bg-red-500">Hello World!</div>
+    <div data-theme="dark">
+      <Navbar />
+
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+      </Routes>
+
+      <Toaster />
+    </div>
   )
 }
 
