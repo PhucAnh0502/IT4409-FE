@@ -5,6 +5,7 @@ import Navbar from "./components/Navbar"
 import LoginPage from "./pages/LoginPage"
 import SignUpPage from "./pages/SignUpPage"
 import SettingsPages from "./pages/SettingsPages"
+import NotFoundPage from "./pages/NotFoundPage"
 
 function App() {
   const {theme} = useThemeStore();
@@ -17,6 +18,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/settings" element={<SettingsPages />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
 
       <Toaster />
