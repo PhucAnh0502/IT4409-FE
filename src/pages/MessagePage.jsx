@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Send, LogIn, LogOut } from 'lucide-react';
+import { MessageSquare, Send, LogIn, LogOut, Users } from 'lucide-react';
 import { socketService } from '../lib/socket';
+import { useUserStatus } from '../hooks/useUserStatus';
+import OnlineUsersList from '../components/OnlineUsersList';
+import UserStatusIndicator from '../components/UserStatusIndicator';
 
 const MessagePage = () => {
   const [message, setMessage] = useState('');
@@ -9,7 +12,16 @@ const MessagePage = () => {
   const [room, setRoom] = useState('');
   const [currentRoom, setCurrentRoom] = useState('');
   const [isJoined, setIsJoined] = useState(false);
+  const [showOnlineUsers, setShowOnlineUsers] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // Use user status hook
+  const { onlineUsers, isUserOnline, getOnlineUsersInRoom } = useUserStatus();
+  console.log('List of online users in MessagePage:', {
+    onlineUsersObject: onlineUsers,
+    onlineUsersArray: Object.values(onlineUsers),
+    onlineUsersCount: Object.values(onlineUsers).filter(u => u.isOnline).length
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -97,6 +109,9 @@ const MessagePage = () => {
 
       // Request room history from server
       socketService.getRoomHistory(room);
+
+      // Request online users in this room
+      socketService.getOnlineUsersInRoom(room);
     }
   };
 
@@ -164,25 +179,64 @@ const MessagePage = () => {
 
         {/* Room Join Section */}
         {!isJoined ? (
-          <div className="card bg-base-200 shadow-lg p-6 mb-4">
-            <h2 className="text-xl font-semibold mb-4">Join a Room</h2>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Enter room name or number..."
-                className="input input-bordered flex-1"
-                value={room}
-                onChange={(e) => setRoom(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && joinRoom()}
-              />
-              <button 
-                className="btn btn-primary gap-2"
-                onClick={joinRoom}
-                disabled={!room.trim()}
-              >
-                <LogIn className="w-5 h-5" />
-                Join Room
-              </button>
+          <div className="flex-1 flex gap-4 overflow-hidden">
+            {/* Join Room Card */}
+            <div className="flex-1 card bg-base-200 shadow-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">Join a Room</h2>
+              <div className="flex gap-2 mb-6">
+                <input
+                  type="text"
+                  placeholder="Enter room name or number..."
+                  className="input input-bordered flex-1"
+                  value={room}
+                  onChange={(e) => setRoom(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && joinRoom()}
+                />
+                <button 
+                  className="btn btn-primary gap-2"
+                  onClick={joinRoom}
+                  disabled={!room.trim()}
+                >
+                  <LogIn className="w-5 h-5" />
+                  Join Room
+                </button>
+              </div>
+
+              {/* Placeholder for joining */}
+              <div className="text-center text-base-content/50 py-12">
+                <MessageSquare className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p className="text-lg">Enter a room name to start chatting</p>
+              </div>
+            </div>
+
+            {/* Online Users Sidebar */}
+            <div className="w-80 bg-base-100 rounded-lg shadow-lg p-4 overflow-y-auto">
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className="w-5 h-5 text-primary" />
+                  <h3 className="font-semibold">
+                    All Online Users ({Object.values(onlineUsers).filter(u => u.isOnline).length})
+                  </h3>
+                </div>
+                <p className="text-xs text-base-content/60 mb-4">
+                  Users currently connected to the chat server
+                </p>
+              </div>
+              {(() => {
+                const allUsers = Object.values(onlineUsers);
+                console.log('[MessagePage - Join Screen] onlineUsers state:', {
+                  onlineUsersObject: onlineUsers,
+                  allUsersArray: allUsers,
+                  onlineUsersCount: allUsers.filter(u => u.isOnline).length,
+                  totalUsersCount: allUsers.length
+                });
+                return (
+                  <OnlineUsersList 
+                    users={allUsers} 
+                    currentRoom=""
+                  />
+                );
+              })()}
             </div>
           </div>
         ) : (
@@ -205,9 +259,36 @@ const MessagePage = () => {
 
         {/* Chat Area */}
         {isJoined && (
-          <div className="flex-1 flex flex-col bg-base-100 rounded-lg shadow-lg overflow-hidden">
-            {/* Messages Container */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div className="flex-1 flex gap-4 overflow-hidden">
+            {/* Main Chat Section */}
+            <div className="flex-1 flex flex-col bg-base-100 rounded-lg shadow-lg overflow-hidden">
+              {/* Chat Header with Online Users Toggle */}
+              <div className="flex items-center justify-between p-3 border-b border-base-300 bg-base-200">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-primary" />
+                  <span className="font-semibold">Room: {currentRoom}</span>
+                </div>
+                <button
+                  className="btn btn-sm btn-ghost gap-2"
+                  onClick={() => setShowOnlineUsers(!showOnlineUsers)}
+                >
+                  <Users className="w-4 h-4" />
+                  <span className="hidden sm:inline">
+                    {(() => {
+                      const onlineCount = Object.values(onlineUsers).filter(u => u.isOnline).length;
+                      console.log('[MessagePage - Room Header] Online users count:', {
+                        onlineUsers,
+                        onlineCount,
+                        currentRoom
+                      });
+                      return onlineCount;
+                    })()} Online
+                  </span>
+                </button>
+              </div>
+
+              {/* Messages Container */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-base-content/50">
                   <p>Hãy bắt đầu cuộc trò chuyện ngay bây giờ!</p>
@@ -230,9 +311,15 @@ const MessagePage = () => {
                             }`}
                           >
                             {!msg.isOwn && msg.sender && (
-                              <p className="text-xs opacity-70 mb-1">
-                                User: {msg.sender.substring(0, 8)}
-                              </p>
+                              <div className="flex items-center gap-2 mb-1">
+                                <UserStatusIndicator 
+                                  isOnline={isUserOnline(msg.sender)} 
+                                  size="xs" 
+                                />
+                                <p className="text-xs opacity-70">
+                                  User: {msg.sender.substring(0, 8)}
+                                </p>
+                              </div>
                             )}
                             <p className="break-words">{msg.text}</p>
                           </div>
@@ -274,15 +361,29 @@ const MessagePage = () => {
               </div>
             </div>
           </div>
-        )}
 
-        {!isJoined && (
-          <div className="flex-1 flex items-center justify-center bg-base-200 rounded-lg">
-            <div className="text-center text-base-content/50">
-              <MessageSquare className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p className="text-lg">Join a room to start chatting</p>
+          {/* Online Users Sidebar */}
+          {showOnlineUsers && (
+            <div className="w-80 bg-base-100 rounded-lg shadow-lg p-4 overflow-y-auto">
+              {(() => {
+                const allUsers = Object.values(onlineUsers);
+                const roomUsers = allUsers.filter(u => u.currentRoom === currentRoom);
+                console.log('[MessagePage - Room Sidebar] Users data:', {
+                  allUsers,
+                  roomUsers,
+                  currentRoom,
+                  onlineUsersInRoom: roomUsers.filter(u => u.isOnline).length
+                });
+                return (
+                  <OnlineUsersList 
+                    users={allUsers} 
+                    currentRoom={currentRoom}
+                  />
+                );
+              })()}
             </div>
-          </div>
+          )}
+        </div>
         )}
       </div>
     </div>

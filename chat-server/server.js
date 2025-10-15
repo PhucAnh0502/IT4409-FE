@@ -21,12 +21,69 @@ const io = new Server(server, {
 // In production, use a database like MongoDB, PostgreSQL, etc.
 const roomMessages = {};
 
+// Store online users and their info
+const onlineUsers = {};
+const roomUsers = {}; // Track which users are in which rooms
+
 io.on("connection", (socket) => {
   console.log(`User Connected: ${socket.id}`);
+
+  // Initialize user as online
+  onlineUsers[socket.id] = {
+    userId: socket.id,
+    isOnline: true,
+    lastSeen: new Date().toISOString(),
+    connectedAt: new Date().toISOString()
+  };
+  console.log('List of online users:', onlineUsers);
+
+  // Broadcast to all clients that a new user is online
+  io.emit("user_status_change", {
+    userId: socket.id,
+    isOnline: true,
+    lastSeen: new Date().toISOString()
+  });
+
+  // Send list of all online users to the newly connected user
+  socket.emit("online_users", Object.values(onlineUsers));
+  
+  // IMPORTANT: Broadcast updated online users list to ALL clients
+  io.emit("online_users", Object.values(onlineUsers));
+  console.log('[Server] Broadcasted online users to all clients:', Object.values(onlineUsers).length, 'users');
+
+  // Handle user info update (optional: username, avatar, etc.)
+  socket.on("user_info", (userInfo) => {
+    if (onlineUsers[socket.id]) {
+      onlineUsers[socket.id] = {
+        ...onlineUsers[socket.id],
+        ...userInfo
+      };
+      
+      // Broadcast updated user info
+      io.emit("user_status_change", {
+        userId: socket.id,
+        isOnline: true,
+        ...onlineUsers[socket.id]
+      });
+    }
+  });
 
   socket.on("join_room", (room) => {
     socket.join(room);
     console.log(`User with ID: ${socket.id} joined room: ${room}`);
+
+    // Track user's current room
+    if (!roomUsers[room]) {
+      roomUsers[room] = new Set();
+    }
+    roomUsers[room].add(socket.id);
+    console.log(`Current users in room ${room}:`, Array.from(roomUsers[room]));
+
+    // Update user's room info
+    if (onlineUsers[socket.id]) {
+      onlineUsers[socket.id].currentRoom = room;
+    }
+    console.log(`User ${socket.id} current room set to ${room}`);
 
     // Initialize room if it doesn't exist
     if (!roomMessages[room]) {
@@ -37,6 +94,16 @@ io.on("connection", (socket) => {
     socket.emit("room_history", {
       room: room,
       messages: roomMessages[room]
+    });
+
+    // Send list of online users in this room
+    const usersInRoom = Array.from(roomUsers[room] || [])
+      .map(userId => onlineUsers[userId])
+      .filter(Boolean);
+    
+    io.to(room).emit("room_online_users", {
+      room: room,
+      users: usersInRoom
     });
   });
 
@@ -57,6 +124,40 @@ io.on("connection", (socket) => {
   socket.on("leave_room", (room) => {
     socket.leave(room);
     console.log(`User with ID: ${socket.id} left room: ${room}`);
+
+    // Remove user from room tracking
+    if (roomUsers[room]) {
+      roomUsers[room].delete(socket.id);
+    }
+    console.log(`Current users in room ${room}:`, Array.from(roomUsers[room] || []));
+
+    // Update user's room info
+    if (onlineUsers[socket.id]) {
+      delete onlineUsers[socket.id].currentRoom;
+    }
+    console.log(`User ${socket.id} current room cleared`);
+
+    // Notify remaining users in room
+    const usersInRoom = Array.from(roomUsers[room] || [])
+      .map(userId => onlineUsers[userId])
+      .filter(Boolean);
+    
+    io.to(room).emit("room_online_users", {
+      room: room,
+      users: usersInRoom
+    });
+  });
+
+  // Handle request for online users in a room
+  socket.on("get_online_users", (room) => {
+    const usersInRoom = Array.from(roomUsers[room] || [])
+      .map(userId => onlineUsers[userId])
+      .filter(Boolean);
+    
+    socket.emit("room_online_users", {
+      room: room,
+      users: usersInRoom
+    });
   });
 
   socket.on("send_message", (data) => {
@@ -83,6 +184,47 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log(`User Disconnected: ${socket.id}`);
+
+    // Mark user as offline
+    if (onlineUsers[socket.id]) {
+      onlineUsers[socket.id].isOnline = false;
+      onlineUsers[socket.id].lastSeen = new Date().toISOString();
+
+      // Broadcast user went offline
+      io.emit("user_status_change", {
+        userId: socket.id,
+        isOnline: false,
+        lastSeen: onlineUsers[socket.id].lastSeen
+      });
+
+      // IMPORTANT: Broadcast updated online users list to ALL clients
+      io.emit("online_users", Object.values(onlineUsers));
+      console.log('[Server] User disconnected, broadcasted updated list:', Object.values(onlineUsers).filter(u => u.isOnline).length, 'online users');
+
+      // Remove from all rooms
+      Object.keys(roomUsers).forEach(room => {
+        if (roomUsers[room].has(socket.id)) {
+          roomUsers[room].delete(socket.id);
+          
+          // Notify room users
+          const usersInRoom = Array.from(roomUsers[room] || [])
+            .map(userId => onlineUsers[userId])
+            .filter(Boolean);
+          
+          io.to(room).emit("room_online_users", {
+            room: room,
+            users: usersInRoom
+          });
+          
+          console.log(`[Server] Updated room ${room} online users:`, usersInRoom.length);
+        }
+      });
+    }
+
+    // Optional: Remove user after some time (keep for "last seen" feature)
+    // setTimeout(() => {
+    //   delete onlineUsers[socket.id];
+    // }, 60000); // Remove after 1 minute
   });
 });
 
