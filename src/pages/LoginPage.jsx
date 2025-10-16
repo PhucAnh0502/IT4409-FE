@@ -11,6 +11,7 @@ import {
 import { Link } from "react-router-dom";
 import AuthImagePattern from "../components/AuthImagePattern";
 import toast from "react-hot-toast";
+import { useAuthStore } from "../stores/useAuthStore";
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -18,6 +19,8 @@ const LoginPage = () => {
     email: "",
     password: "",
   });
+
+  const {login, isLoggingIn} = useAuthStore();
 
   const validateForm = () => {
     if (!formData.email.trim()) {
@@ -38,7 +41,7 @@ const LoginPage = () => {
     const success = validateForm();
 
     if (success === true) {
-      console.log("Form is valid, proceed with login")
+      await login(formData);
     }
   };
   return (
@@ -110,16 +113,16 @@ const LoginPage = () => {
             <button
               type="submit"
               className="btn btn-primary w-full"
-            //   disabled={isLoggingIn}
+              disabled={isLoggingIn}
             >
-              {/* {isLoggingIn ? (
+              {isLoggingIn ? (
                 <>
                   <Loader2 className="size-5 animate-spin" />
                   Loading...
                 </>
               ) : (
                 "Sign In"
-              )} */}
+              )}
             </button>
           </form>
 

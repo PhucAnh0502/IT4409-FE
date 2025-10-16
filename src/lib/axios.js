@@ -1,20 +1,23 @@
 import axios from "axios";
 import {toast} from "react-hot-toast";
+import { useAuthStore } from "../stores/useAuthStore";
 
 // ===== Instance cho Backend API =====
-const beInstance = axios.create({
-  baseURL: "BE_API_URL", 
+const axiosInstance = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL, 
 });
 
-beInstance.interceptors.request.use(
+axiosInstance.interceptors.request.use(
   (config) => {
-    config.headers.Authorization = `Bearer token`;
+    const {token} = useAuthStore();
+
+    config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-beInstance.interceptors.response.use(
+axiosInstance.interceptors.response.use(
   (response) => {
     if (response && response.data) return response.data;
   },
@@ -34,3 +37,5 @@ beInstance.interceptors.response.use(
     return Promise.reject(error?.response?.data || error);
   }
 );
+
+export { axiosInstance };
