@@ -1,49 +1,52 @@
 import React, { useState } from "react";
-import {
-  Eye,
-  EyeOff,
-  Loader2,
-  Lock,
-  Mail,
-  MessageSquare,
-  User,
-} from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
 import AuthImagePattern from "../components/AuthImagePattern";
-import toast from "react-hot-toast";
 import { useAuthStore } from "../stores/useAuthStore";
+import { handleInputChange } from "../lib/utils";
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
-  const {login, isLoggingIn} = useAuthStore();
+  const { login, isLoggingIn } = useAuthStore();
 
   const validateForm = () => {
+    const errors = {};
+
+    // Email
     if (!formData.email.trim()) {
-      return toast.error("Email is required");
+      errors.email = "Email is required";
     }
     if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      return toast.error("Invalid email format");
-    }
-    if (!formData.password.trim()) {
-      return toast.error("Password is required");
+      errors.email = "Invalid email format";
     }
 
-    return true;
+    // Password
+    if (!formData.password.trim()) {
+      errors.password = "Password is required";
+    }
+
+    return errors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const success = validateForm();
 
-    if (success === true) {
-      await login(formData);
+    const formErrors = validateForm();
+    if (Object.keys(formErrors).length > 0) {
+      setErrors(formErrors);
+      return;
     }
+    setErrors({});
+
+    await login(formData);
   };
+
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* Left Side */}
@@ -60,41 +63,40 @@ const LoginPage = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Email</span>
-              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Mail className="size-5 text-base-content/40" />
                 </div>
                 <input
+                  name="email"
                   type="email"
-                  className={`input input-bordered w-full pl-10`}
-                  placeholder="abc@example.com"
+                  placeholder="Email Address"
+                  className={`input input-bordered w-full pl-10 ${
+                    errors.email ? "input-error" : ""
+                  }`}
                   value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
+                  onChange={handleInputChange(setFormData, setErrors)}
                 />
               </div>
+              {errors.email && (
+                <p className="text-error text-xs mt-1 ml-1">{errors.email}</p>
+              )}
             </div>
 
             <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Password</span>
-              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="size-5 text-base-content/40" />
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
-                  className={`input input-bordered w-full pl-10`}
-                  placeholder="********"
+                  name="password"
+                  placeholder="Password"
+                  className={`input input-bordered w-full pl-10 ${
+                    errors.password ? "input-error" : ""
+                  }`}
                   value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
+                  onChange={handleInputChange(setFormData, setErrors)}
                 />
                 <button
                   type="button"
@@ -108,6 +110,11 @@ const LoginPage = () => {
                   )}
                 </button>
               </div>
+              {errors.password && (
+                <p className="text-error text-xs mt-1 ml-1">
+                  {errors.password}
+                </p>
+              )}
             </div>
 
             <button

@@ -1,15 +1,15 @@
 import axios from "axios";
 import {toast} from "react-hot-toast";
-import { useAuthStore } from "../stores/useAuthStore";
+import { getToken } from "./utils";
 
 // ===== Instance cho Backend API =====
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL, 
+  baseURL: import.meta.env.VITE_BASE_API_URL, 
 });
 
 axiosInstance.interceptors.request.use(
   (config) => {
-    const {token} = useAuthStore();
+    const token = getToken()
 
     config.headers.Authorization = `Bearer ${token}`;
     return config;
