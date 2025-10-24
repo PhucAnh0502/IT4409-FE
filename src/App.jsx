@@ -6,6 +6,7 @@ import LoginPage from "./pages/LoginPage"
 import SignUpPage from "./pages/SignUpPage"
 import SettingsPages from "./pages/SettingsPages"
 import NotFoundPage from "./pages/NotFoundPage"
+import ProfilePage from "./pages/ProfilePage"
 
 function App() {
   const {theme} = useThemeStore();
@@ -19,6 +20,7 @@ function App() {
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/settings" element={<SettingsPages />} />
         <Route path="*" element={<NotFoundPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
       </Routes>
 
       <Toaster />
