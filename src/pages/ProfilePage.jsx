@@ -1,6 +1,5 @@
 import React, { useState, useRef } from "react";
 import toast from "react-hot-toast";
-import ProfileCover from "../components/profile/ProfileCover";
 import ProfileAvatar from "../components/profile/ProfileAvatar";
 import ProfileInfo from "../components/profile/ProfileInfo";
 import ProfileTabs from "../components/profile/ProfileTabs";
@@ -137,7 +136,9 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-base-200 pt-16">
       {/* Cover Photo Section */}
-      <ProfileCover />
+      <div className="bg-gradient-to-r from-primary to-secondary h-64 relative">
+       <div className="absolute inset-0 bg-black/10"></div>
+      </div>
 
       {/* Profile Header */}
       <div className="max-w-6xl mx-auto px-4 -mt-32 relative z-10">
