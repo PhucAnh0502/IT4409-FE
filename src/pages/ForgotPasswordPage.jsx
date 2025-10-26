@@ -1,8 +1,8 @@
 import React from 'react';
-import EmailResetPassword from "../components/EmailResetPassword";
-import OTPInput from "../components/OTPInput";
-import ResetPassword from '../components/ResetPassword';
-import Recovered from '../components/Recovered';
+import EmailResetPassword from "../components/forgot-password/EmailResetPassword";
+import OTPInput from "../components/forgot-password/OTPInput";
+import ResetPassword from "../components/forgot-password/ResetPassword";
+import Recovered from "../components/forgot-password/Recovered";
 import { useRecoveryStore } from "../stores/useRecoveryStore";
 
 const ForgotPasswordPage = () => {

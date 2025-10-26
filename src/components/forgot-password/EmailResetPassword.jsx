@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { useRecoveryStore } from "../stores/useRecoveryStore";
-import { handleInputChange } from "../lib/utils";
+import { useRecoveryStore } from "../../stores/useRecoveryStore";
+import { handleInputChange } from "../../lib/utils";
 import { useNavigate } from "react-router-dom";
 
 const EmailResetPassword = () => {
