@@ -7,6 +7,7 @@ import SignUpPage from "./pages/SignUpPage"
 import SettingsPages from "./pages/SettingsPages"
 import NotFoundPage from "./pages/NotFoundPage"
 import ForgotPasswordPage from "./pages/ForgotPasswordPage"
+import ProfilePage from "./pages/ProfilePage"
 
 function App() {
   const {theme} = useThemeStore();
@@ -21,6 +22,7 @@ function App() {
         <Route path="/settings" element={<SettingsPages />} />
         <Route path="*" element={<NotFoundPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
       </Routes>
 
       <Toaster />
