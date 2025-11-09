@@ -9,11 +9,11 @@ const FriendCard = ({ friend, size = "small" }) => {
     <div className={`bg-base-200 rounded-lg ${padding} hover:bg-base-300 transition-all cursor-pointer group text-center flex flex-col items-center justify-center`}>
       <div className={`avatar ${marginBottom} flex justify-center`}>
         <div className={`${avatarSize} rounded-full`}>
-          <img src={friend.avatar} alt={friend.firstName} className="rounded-full" />
+          <img src={friend.avatarUrl} alt={friend.fullname} className="rounded-full" />
         </div>
       </div>
       <h3 className="font-semibold text-sm text-base-content group-hover:text-primary transition-colors truncate w-full">
-        {friend.firstName} {friend.lastName}
+        {friend.fullname}
       </h3>
       <p className="text-xs text-base-content/60 mt-1">
         {friend.mutualFriends} mutual friends

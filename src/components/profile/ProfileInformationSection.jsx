@@ -20,27 +20,27 @@ const ProfileInformationSection = ({
         </h2>
         
         <div className="space-y-4">
-          {/* First Name and Last Name */}
+          {/* Name */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <EditableField
-              field="firstName"
+              field="fullName"
               icon={Edit2}
-              label="First Name"
-              value={profile.firstName}
-              isEditing={editMode.firstName}
-              tempValue={tempValues.firstName}
+              label="Full Name"
+              value={profile.fullName}
+              isEditing={editMode.fullName}
+              tempValue={tempValues.fullName}
               onStartEdit={onStartEdit}
               onCancelEdit={onCancelEdit}
               onSaveEdit={onSaveEdit}
               onTempValueChange={onTempValueChange}
             />
             <EditableField
-              field="lastName"
+              field="userName"
               icon={Edit2}
-              label="Last Name"
-              value={profile.lastName}
-              isEditing={editMode.lastName}
-              tempValue={tempValues.lastName}
+              label="Username"
+              value={profile.userName}
+              isEditing={editMode.userName}
+              tempValue={tempValues.userName}
               onStartEdit={onStartEdit}
               onCancelEdit={onCancelEdit}
               onSaveEdit={onSaveEdit}

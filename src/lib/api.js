@@ -9,5 +9,6 @@ export const API = {
         GET_USER: (userId) => `/User/${userId}`,
         UPDATE_USER: (userId) => `/User/${userId}`,
         DELETE_USER: (userId) => `/User/${userId}`,
+        GET_FRIENDS: (userId) => `/User/${userId}/friends`, // Add friends endpoint
     }
 }
