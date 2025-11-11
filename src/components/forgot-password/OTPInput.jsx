@@ -1,6 +1,6 @@
 import React from "react";
 import { useState } from "react";
-import { useRecoveryStore } from "../stores/useRecoveryStore";
+import { useRecoveryStore } from "../../stores/useRecoveryStore";
 
 export default function OTPInput() {
   const { email, otp, setPage } = useRecoveryStore();

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useRecoveryStore } from "../stores/useRecoveryStore";
+import { useRecoveryStore } from "../../stores/useRecoveryStore";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function ResetPassword() {
