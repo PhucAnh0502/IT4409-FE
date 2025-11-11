@@ -1,7 +1,7 @@
 import { Send, Smile, Paperclip, Phone, Video, Info } from "lucide-react";
 import { useState } from "react";
-import MemberListModal from "../components/MemberListModal";
-import GroupMenuModal from "../components/GroupMenuModal";
+import MemberListModal from "../components/group-chat/MemberListModal";
+import GroupMenuModal from "../components/group-chat/GroupMenuModal";
 
 const GroupChatPage = () => {
   const [showMemberList, setShowMemberList] = useState(false);
