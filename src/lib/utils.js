@@ -14,6 +14,21 @@ export function setToken(token){
   sessionStorage.setItem("token", token);
 }
 
+export function getUserIdFromToken(){
+  const token = getToken();
+  if (!token) return null;
+  
+  try {
+    // Decode JWT token (base64)
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    // JWT payload usually has 'sub', 'userId', 'id', or similar field
+    return payload.sub || payload.userId || payload.id || payload.nameid;
+  } catch (error) {
+    console.error("Failed to decode token:", error);
+    return null;
+  }
+}
+
 export const handleInputChange = (setFormData, setErrors) => (e) => {
   const { name, value } = e.target;
   setFormData(prevData => ({ ...prevData, [name]: value }));

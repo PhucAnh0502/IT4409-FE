@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { axiosInstance } from "../lib/axios.js";
+import { publicAxiosInstance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { API } from "../lib/api.js";
 import { setToken } from "../lib/utils.js";
@@ -14,7 +14,7 @@ export const useAuthStore = create((set) => ({
     login: async (data) => {
         set({ isLoggingIn: true });
         try {
-            const res = await axiosInstance.post(API.AUTH.LOGIN, data);
+            const res = await publicAxiosInstance.post(API.AUTH.LOGIN, data);
             setToken(res.token);
             //set({ authUser: res });
             toast.success("Logged in successfully");
@@ -27,7 +27,7 @@ export const useAuthStore = create((set) => ({
     signUp: async (data) => {
         set({ isSigningUp: true });
         try {
-            const res = await axiosInstance.post(API.AUTH.REGISTER, data);
+            const res = await publicAxiosInstance.post(API.AUTH.REGISTER, data);
             console.log(res);
             toast.success("Signed up successfully");
         } catch (error) {

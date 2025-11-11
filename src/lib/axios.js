@@ -1,25 +1,48 @@
 import axios from "axios";
-import {toast} from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import { getToken } from "./utils";
 
-// ===== Instance cho Backend API =====
-const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_BASE_API_URL, 
+const baseURL = import.meta.env.VITE_BASE_API_URL;
+
+// ===== 1. Instance CÔNG KHAI (Public) =====
+const publicAxiosInstance = axios.create({
+  baseURL: baseURL,
 });
 
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = getToken()
+publicAxiosInstance.interceptors.response.use(
+  (response) => {
+    if (response && response.data) return response.data;
+    return response;
+  },
+  (error) => {
+    return Promise.reject(error?.response?.data || error);
+  }
+);
 
-    config.headers.Authorization = `Bearer ${token}`;
+// ===== 2. Instance CẦN XÁC THỰC (Authenticated) =====
+const authAxiosInstance = axios.create({
+  baseURL: baseURL,
+});
+
+authAxiosInstance.interceptors.request.use(
+  (config) => {
+    const token = getToken();
+
+    if(token){
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
     return config;
   },
+
   (error) => Promise.reject(error)
 );
 
-axiosInstance.interceptors.response.use(
+// Interceptor RESPONSE
+authAxiosInstance.interceptors.response.use(
   (response) => {
     if (response && response.data) return response.data;
+    return response;
   },
   (error) => {
     if (
@@ -38,4 +61,4 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-export { axiosInstance };
+export { publicAxiosInstance, authAxiosInstance };
