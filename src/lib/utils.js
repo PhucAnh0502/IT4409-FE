@@ -14,6 +14,10 @@ export function setToken(token){
   sessionStorage.setItem("token", token);
 }
 
+export function removeToken(){
+  sessionStorage.removeItem("token");
+}
+
 export function getUserIdFromToken(){
   const token = getToken();
   if (!token) return null;

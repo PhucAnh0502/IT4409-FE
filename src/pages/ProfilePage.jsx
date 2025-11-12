@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import Cropper from "react-easy-crop";
 import { X } from "lucide-react";
 import { useUserStore } from "../stores/useUserStore";
-import { getUserIdFromToken, onFileChange } from "../lib/utils";
+import { getUserIdFromToken } from "../lib/utils";
 import { getCroppedImg } from "../lib/imageHandler";
 import ProfileAvatar from "../components/profile/ProfileAvatar";
 import ProfileInfo from "../components/profile/ProfileInfo";

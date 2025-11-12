@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import AuthImagePattern from "../components/AuthImagePattern";
 import { useAuthStore } from "../stores/useAuthStore";
 import { handleInputChange } from "../lib/utils";
+import { useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -14,6 +15,7 @@ const LoginPage = () => {
   });
 
   const { login, isLoggingIn } = useAuthStore();
+  const navigate = useNavigate();
 
   const validateForm = () => {
     const errors = {};
@@ -44,7 +46,8 @@ const LoginPage = () => {
     }
     setErrors({});
 
-    await login(formData);
+    const res = await login(formData);
+    if (res) navigate('/');
   };
 
   return (
@@ -138,6 +141,14 @@ const LoginPage = () => {
               Don&apos;t have an account?{" "}
               <Link to="/signup" className="link link-primary">
                 Create account
+              </Link>
+            </p>
+          </div>
+
+          <div className="text-center">
+            <p className="text-base-content/60">
+              <Link to="/forgot-password" className="link link-primary">
+                Forgot Password?
               </Link>
             </p>
           </div>

@@ -1,6 +1,7 @@
-import { Routes, Route } from "react-router"
+import { Routes, Route, Outlet } from "react-router"
 import { Toaster } from "react-hot-toast"
 import { useThemeStore } from "./stores/useThemeStore"
+import PrivateRoutes from "./routes/PrivateRoutes"
 import Navbar from "./components/Navbar"
 import LoginPage from "./pages/LoginPage"
 import SignUpPage from "./pages/SignUpPage"
@@ -18,12 +19,18 @@ function App() {
       <Navbar />
 
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route element={
+          <PrivateRoutes>
+            <Outlet />
+          </PrivateRoutes>
+        }>         
+          <Route path="/" element={<HomePage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+        </Route>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/settings" element={<SettingsPages />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
 

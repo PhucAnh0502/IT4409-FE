@@ -1,3 +1,15 @@
+import {
+  image1,
+  image2,
+  image3,
+  image4,
+  image5,
+  image6,
+  image7,
+  image8,
+  logo,
+} from "../assets";
+
 export const THEMES = [
   "light",
   "dark",
@@ -31,4 +43,16 @@ export const THEMES = [
   "dim",
   "nord",
   "sunset",
+];
+
+export const authImages = [
+  image1,
+  image2,
+  image3,
+  image4,
+  logo,
+  image5,
+  image6,
+  image7,
+  image8,
 ];

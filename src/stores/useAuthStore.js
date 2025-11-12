@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { publicAxiosInstance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { API } from "../lib/api.js";
-import { setToken } from "../lib/utils.js";
+import { setToken, removeToken } from "../lib/utils.js";
 
 export const useAuthStore = create((set) => ({
     authUser: null,
@@ -16,8 +16,9 @@ export const useAuthStore = create((set) => ({
         try {
             const res = await publicAxiosInstance.post(API.AUTH.LOGIN, data);
             setToken(res.token);
-            //set({ authUser: res });
+            set({ authUser: res });
             toast.success("Logged in successfully");
+            return res;
         } catch (error) {
             toast.error(error?.message || "Error in login");
         } finally {
@@ -34,6 +35,16 @@ export const useAuthStore = create((set) => ({
             toast.error(error?.message || "Error in sign up");
         } finally {
             set({ isSigningUp: false });
+        }
+    },
+    logout: () => {
+        try {
+            removeToken();
+            set({ authUser: null });
+            toast.success('Logged out successfully');
+            window.location.href = '/login';
+        } catch (e) {
+            toast.error('Logout failed', e);
         }
     }
 }))
