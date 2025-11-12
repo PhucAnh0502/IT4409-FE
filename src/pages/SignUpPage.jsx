@@ -38,7 +38,7 @@ const SignUpPage = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    avatarUrl: null,
+    avatarUrl: "https://tse3.mm.bing.net/th/id/OIP.JkmDH-OEW5dZYiLe1XgLiQHaHa?cb=ucfimg2ucfimg=1&rs=1&pid=ImgDetMain&o=7&rm=3",
     bio: "",
     phone: "",
   });
