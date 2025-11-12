@@ -10,6 +10,7 @@ import NotFoundPage from "./pages/NotFoundPage"
 import ForgotPasswordPage from "./pages/ForgotPasswordPage"
 import ProfilePage from "./pages/ProfilePage"
 import HomePage from "./pages/HomePage"
+import ResetPasswordPage from "./pages/ResetPasswordPage"
 
 function App() {
   const {theme} = useThemeStore();
@@ -31,6 +32,7 @@ function App() {
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/settings" element={<SettingsPages />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
 

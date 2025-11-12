@@ -2,6 +2,8 @@ export const API = {
     AUTH: {
         LOGIN: '/Auth/login',
         REGISTER: '/Auth/register',
+        FORGOT_PASSWORD: '/User/forgot-password',
+        RESET_PASSWORD: '/User/reset-password',
     },
     USER: {
         ALL_USER: '/User',
