@@ -8,7 +8,8 @@ export const useAuthStore = create((set) => ({
     authUser: null,
     isSigningUp: false,
     isLoggingIn: false,
-    isUpdatingProfile: false,
+    isGettingResetEmail: false,
+    isResettingPassword: false,
     isCheckingAuth: true,
     onlineUsers: [],
     login: async (data) => {
@@ -45,6 +46,28 @@ export const useAuthStore = create((set) => ({
             window.location.href = '/login';
         } catch (e) {
             toast.error('Logout failed', e);
+        }
+    },
+    forgotPassword: async (data) => {
+        set({ isGettingResetEmail: true });
+        try {
+            const res = await publicAxiosInstance.post(API.AUTH.FORGOT_PASSWORD, data);
+            toast.success(res.message || "Reset email sent successfully");
+        } catch (error) {
+            toast.error(error?.message || "Error in getting reset email");
+        } finally {
+            set({ isGettingResetEmail: false });
+        }
+    },
+    resetPassword: async (data) => {
+        set({ isResettingPassword: true });
+        try {
+            const res = await publicAxiosInstance.post(API.AUTH.RESET_PASSWORD, data);
+            toast.success(res.message || "Reset password successfully");
+        } catch (error) {
+            toast.error(error?.message || "Error in resetting password");
+        } finally {
+            set({ isResettingPassword: false });
         }
     }
 }))
