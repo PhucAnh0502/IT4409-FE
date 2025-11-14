@@ -32,7 +32,7 @@ const ProfileTabs = ({ activeTab, onTabChange }) => {
               : "text-base-content/60 hover:bg-base-200"
           }`}
         >
-          Reset password
+          Change password
         </button>
       </div>
     </div>

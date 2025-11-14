@@ -1,38 +1,46 @@
 import React, { useState } from "react";
 import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import AuthImagePattern from "../components/AuthImagePattern";
 import { useAuthStore } from "../stores/useAuthStore";
 import { handleInputChange } from "../lib/utils";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 
-const LoginPage = () => {
+const ResetPasswordPage = () => {
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
-    email: "",
+    token: token,
     password: "",
+    confirmPassword: "",
   });
 
-  const { login, isLoggingIn } = useAuthStore();
+  const { resetPassword, isResettingPassword } = useAuthStore();
   const navigate = useNavigate();
 
   const validateForm = () => {
     const errors = {};
 
-    // Email
-    if (!formData.email.trim()) {
-      errors.email = "Email is required";
-    }
-    if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = "Invalid email format";
-    }
-
     // Password
-    if (!formData.password.trim()) {
+    if (!formData.password) {
       errors.password = "Password is required";
+    } else if (formData.password.length < 8) {
+      errors.password = "Password must be at least 8 characters";
+    } else if (
+      !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(formData.password)
+    ) {
+      errors.password =
+        "Password must contain uppercase, lowercase, number, and special character";
     }
 
+    // Confirm Password
+    if (!formData.confirmPassword) {
+      errors.confirmPassword = "Please confirm your password";
+    } else if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = "Passwords do not match";
+    }
     return errors;
   };
 
@@ -46,8 +54,8 @@ const LoginPage = () => {
     }
     setErrors({});
 
-    const res = await login(formData);
-    if (res) navigate('/');
+    const res = await resetPassword(formData);
+    if (res) navigate("/login");
   };
 
   return (
@@ -59,33 +67,13 @@ const LoginPage = () => {
           <div className="text-center mb-8">
             <div className="flex flex-col items-center justify-center group-hover:bg-primary/20 transition-colors">
               <MessageSquare className="size-6 text-primary" />
-              <h1 className="text-2xl font-bold mt-2">Welcome Back</h1>
-              <p className="text-base-content/60">Sign in to your account</p>
+              <h1 className="text-2xl font-bold mt-2">Change Password</h1>
+              <p className="text-base-content/60">Enter your new password to change</p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="form-control">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="size-5 text-base-content/40" />
-                </div>
-                <input
-                  name="email"
-                  type="email"
-                  placeholder="Email Address"
-                  className={`input input-bordered w-full pl-10 ${
-                    errors.email ? "input-error" : ""
-                  }`}
-                  value={formData.email}
-                  onChange={handleInputChange(setFormData, setErrors)}
-                />
-              </div>
-              {errors.email && (
-                <p className="text-error text-xs mt-1 ml-1">{errors.email}</p>
-              )}
-            </div>
-
+            {/* Password */}
             <div className="form-control">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -120,35 +108,62 @@ const LoginPage = () => {
               )}
             </div>
 
+            {/* Confirm Password */}
+            <div className="form-control">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="size-5 text-base-content/40" />
+                </div>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="confirmPassword"
+                  placeholder="Confirm Password"
+                  className={`input input-bordered w-full pl-10 ${
+                    errors.confirmPassword ? "input-error" : ""
+                  }`}
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange(setFormData, setErrors)}
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="size-5 text-base-content/40" />
+                  ) : (
+                    <Eye className="size-5 text-base-content/40" />
+                  )}
+                </button>
+              </div>
+              {errors.confirmPassword && (
+                <p className="text-error text-xs mt-1 ml-1">
+                  {errors.confirmPassword}
+                </p>
+              )}
+            </div>
+
             <button
               type="submit"
               className="btn btn-primary w-full"
-              disabled={isLoggingIn}
+              disabled={isResettingPassword}
             >
-              {isLoggingIn ? (
+              {isResettingPassword ? (
                 <>
                   <Loader2 className="size-5 animate-spin" />
                   Loading...
                 </>
               ) : (
-                "Sign In"
+                "Change Password"
               )}
             </button>
           </form>
 
           <div className="text-center">
             <p className="text-base-content/60">
-              Don&apos;t have an account?{" "}
-              <Link to="/signup" className="link link-primary">
-                Create account
-              </Link>
-            </p>
-          </div>
-
-          <div className="text-center">
-            <p className="text-base-content/60">
-              <Link to="/forgot-password" className="link link-primary">
-                Forgot Password?
+              Back to{" "}
+              <Link to="/login" className="link link-primary">
+                log in
               </Link>
             </p>
           </div>
@@ -157,11 +172,11 @@ const LoginPage = () => {
 
       {/* Right Side */}
       <AuthImagePattern
-        title="Welcome back!"
-        subtitle="Sign in to continue your conversations and catch up with your messages"
+        title="Create a New Password"
+        subtitle="You're almost there! Choose a new, strong password for your account."
       />
     </div>
   );
 };
 
-export default LoginPage;
+export default ResetPasswordPage;

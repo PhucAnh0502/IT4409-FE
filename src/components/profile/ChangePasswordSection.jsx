@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { Lock, Eye, EyeOff, KeyRound } from "lucide-react";
 import toast from "react-hot-toast";
+import { useAuthStore } from "../../stores/useAuthStore";
 
-const ResetPasswordSection = ({ onPasswordChange }) => {
+const ChangePasswordSection = ({ userId }) => {
+  const { changePassword } = useAuthStore();
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
@@ -85,13 +87,13 @@ const ResetPasswordSection = ({ onPasswordChange }) => {
     }
 
     try {
-      // Call the parent's password change handler
-      if (onPasswordChange) {
-        await onPasswordChange({
-          currentPassword: passwords.currentPassword,
-          newPassword: passwords.newPassword
-        });
-      }
+      // Call API to change password
+      await changePassword({
+        userId: userId,
+        currentPassword: passwords.currentPassword,
+        newPassword: passwords.newPassword,
+        confirmPassword: passwords.confirmPassword
+      });
 
       // Clear form on success
       setPasswords({
@@ -100,14 +102,14 @@ const ResetPasswordSection = ({ onPasswordChange }) => {
         confirmPassword: ""
       });
       setErrors({});
-      toast.success("Password changed successfully!");
     } catch (error) {
       console.error("Password change failed:", error);
       
       // Handle specific error cases
       if (error?.message?.includes("current password") || 
           error?.message?.includes("incorrect password") ||
-          error?.message?.includes("wrong password")) {
+          error?.message?.includes("wrong password") ||
+          error?.message?.includes("old password")) {
         setErrors({
           currentPassword: "Current password is incorrect"
         });
@@ -122,7 +124,7 @@ const ResetPasswordSection = ({ onPasswordChange }) => {
       <div className="bg-base-100 rounded-xl shadow-md p-6 w-full">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
           <KeyRound className="w-6 h-6 text-primary" />
-          Reset Password
+          Change Password
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -260,4 +262,4 @@ const ResetPasswordSection = ({ onPasswordChange }) => {
   );
 };
 
-export default ResetPasswordSection;
+export default ChangePasswordSection;

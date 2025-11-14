@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import Cropper from "react-easy-crop";
 import { X } from "lucide-react";
 import { useUserStore } from "../stores/useUserStore";
-import { getUserIdFromToken, onFileChange } from "../lib/utils";
+import { getUserIdFromToken } from "../lib/utils";
 import { getCroppedImg } from "../lib/imageHandler";
 import ProfileAvatar from "../components/profile/ProfileAvatar";
 import ProfileInfo from "../components/profile/ProfileInfo";
@@ -11,7 +11,7 @@ import ProfileTabs from "../components/profile/ProfileTabs";
 import ProfileInformationSection from "../components/profile/ProfileInformationSection";
 import FriendsPreviewSection from "../components/profile/FriendsPreviewSection";
 import AllFriendsSection from "../components/profile/AllFriendsSection";
-import ResetPasswordSection from "../components/profile/ResetPasswordSection";
+import ChangePasswordSection from "../components/profile/ChangePasswordSection";
 
 const ProfilePage = () => {
   // Get user store
@@ -339,8 +339,8 @@ const ProfilePage = () => {
             /* Friends Tab Content - Full Friends List */
             <AllFriendsSection friends={friends} />
           ) : activeTab === "reset_password" ? (
-            /* Reset Password Tab Content */
-            <ResetPasswordSection />
+            /* Change Password Tab Content */
+            <ChangePasswordSection userId={getUserIdFromToken()} />
           ) : null}
         </div>
       </div>
