@@ -24,6 +24,16 @@ const ProfileTabs = ({ activeTab, onTabChange }) => {
         >
           Friends
         </button>
+        <button 
+          onClick={() => onTabChange("reset_password")}
+          className={`px-6 py-4 font-semibold transition-colors ${
+            activeTab === "reset_password" 
+              ? "border-b-4 border-primary text-primary" 
+              : "text-base-content/60 hover:bg-base-200"
+          }`}
+        >
+          Reset password
+        </button>
       </div>
     </div>
   );
