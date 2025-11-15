@@ -4,6 +4,7 @@ export const API = {
         REGISTER: '/Auth/register',
         FORGOT_PASSWORD: '/User/forgot-password',
         RESET_PASSWORD: '/User/reset-password',
+        CHANGE_PASSWORD: '/Auth/change-password',
     },
     USER: {
         ALL_USER: '/User',

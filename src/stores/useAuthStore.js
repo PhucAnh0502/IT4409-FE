@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { publicAxiosInstance } from "../lib/axios.js";
+import { publicAxiosInstance, authAxiosInstance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { API } from "../lib/api.js";
 import { setToken, removeToken } from "../lib/utils.js";
@@ -63,11 +63,26 @@ export const useAuthStore = create((set) => ({
         set({ isResettingPassword: true });
         try {
             const res = await publicAxiosInstance.post(API.AUTH.RESET_PASSWORD, data);
-            toast.success(res.message || "Reset password successfully");
+            toast.success(res.message || "Change password successfully");
         } catch (error) {
             toast.error(error?.message || "Error in resetting password");
         } finally {
             set({ isResettingPassword: false });
+        }
+    },
+    changePassword: async (data) => {
+        try {
+            const payload = {
+                id: data.userId,
+                oldPassword: data.currentPassword,
+                newPassword: data.newPassword,
+                confirmNewPassword: data.confirmPassword
+            };
+            const res = await authAxiosInstance.post(API.AUTH.CHANGE_PASSWORD, payload);
+            toast.success("Password changed successfully!");
+            return res;
+        } catch (error) {
+            throw error;
         }
     }
 }))

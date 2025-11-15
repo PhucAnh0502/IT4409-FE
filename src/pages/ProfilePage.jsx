@@ -11,6 +11,7 @@ import ProfileTabs from "../components/profile/ProfileTabs";
 import ProfileInformationSection from "../components/profile/ProfileInformationSection";
 import FriendsPreviewSection from "../components/profile/FriendsPreviewSection";
 import AllFriendsSection from "../components/profile/AllFriendsSection";
+import ChangePasswordSection from "../components/profile/ChangePasswordSection";
 
 const ProfilePage = () => {
   // Get user store
@@ -334,10 +335,13 @@ const ProfilePage = () => {
                 onSeeAllClick={() => setActiveTab("friends")}
               />
             </div>
-          ) : (
+          ) : activeTab === "friends" ? (
             /* Friends Tab Content - Full Friends List */
             <AllFriendsSection friends={friends} />
-          )}
+          ) : activeTab === "reset_password" ? (
+            /* Change Password Tab Content */
+            <ChangePasswordSection userId={getUserIdFromToken()} />
+          ) : null}
         </div>
       </div>
     </div>
