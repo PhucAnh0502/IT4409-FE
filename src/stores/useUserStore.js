@@ -25,21 +25,6 @@ export const useUserStore = create((set) => ({
         }
     },
 
-    // Get user friends
-    getUserFriends: async (userId) => {
-        set({ isLoadingFriends: true });
-        try {
-            const res = await authAxiosInstance.get(API.USER.GET_FRIENDS(userId));
-            set({ friends: res });
-            return res;
-        } catch (error) {
-            toast.error(error?.message || "Error fetching friends list");
-            throw error;
-        } finally {
-            set({ isLoadingFriends: false });
-        }
-    },
-
     // Update user
     updateUser: async (userId, data) => {
         set({ isUpdatingUser: true });
