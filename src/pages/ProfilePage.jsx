@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import Cropper from "react-easy-crop";
 import { X } from "lucide-react";
 import { useUserStore } from "../stores/useUserStore";
+import { useFriendStore } from "../stores/useFriendStore";
 import { getUserIdFromToken } from "../lib/utils";
 import { getCroppedImg } from "../lib/imageHandler";
 import ProfileAvatar from "../components/profile/ProfileAvatar";
@@ -15,15 +16,17 @@ import ChangePasswordSection from "../components/profile/ChangePasswordSection";
 
 const ProfilePage = () => {
   // Get user store
-  const { 
-    friends: storeFriends, 
+  const {      
     isLoadingUser, 
     isLoadingFriends,
     isUpdatingUser,
     getUserById, 
-    getUserFriends,
     updateUser 
   } = useUserStore();
+  const { 
+    friends: storeFriends,
+    getUserFriends 
+  } = useFriendStore();
   
   // Active tab state
   const [activeTab, setActiveTab] = useState("about"); // "about" or "friends"
@@ -135,7 +138,7 @@ const ProfilePage = () => {
     // Fetch user profile data
     getUserById(userId).then((userData) => {
       // Map API response to profile state
-      console.log("User data from API:", userData);
+      
       if (userData) {
         setProfile({
           avatarUrl: userData.avatarUrl ||  `https://ui-avatars.com/api/?name=${userData.fullName || 'Unknown'}&background=random`,

@@ -11,17 +11,26 @@ const ProfileInfo = ({ fullname, userName, friendsCount, friends }) => {
       </p>
       
       {/* Friend avatars preview */}
-      <div className="flex justify-center md:justify-start gap-1 mt-3">
-        <div className="avatar-group -space-x-4">
-          {friends.slice(0, 5).map((friend) => (
-            <div key={friend.id} className="avatar border-2 border-base-100">
-              <div className="w-8 h-8">
-                <img src={friend.avatarUrl} alt={friend.fullname} />
+      {friends && friends.length > 0 && (
+        <div className="flex justify-center md:justify-start gap-3 mt-3 flex-wrap">
+          {friends.slice(0, 5).map((friend, index) => (
+            <div key={friend.id || index} className="flex flex-col items-center gap-1">
+              <div className="avatar">
+                <div className="w-12 h-12 rounded-full border-2 border-base-100">
+                  <img 
+                    src={friend.avatarUrl || `https://ui-avatars.com/api/?name=${friend.fullName || friend.userName}&background=random`} 
+                    alt={friend.fullName || friend.userName}
+                    className="rounded-full"
+                  />
+                </div>
               </div>
+              <span className="text-xs text-base-content/70 truncate max-w-[48px]">
+                {friend.userName || friend.fullName}
+              </span>
             </div>
           ))}
         </div>
-      </div>
+      )}
     </div>
   );
 };

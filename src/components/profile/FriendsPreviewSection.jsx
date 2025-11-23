@@ -12,22 +12,33 @@ const FriendsPreviewSection = ({ friends, onSeeAllClick }) => {
             Friends
           </h2>
           <span className="text-base-content/60 text-sm">
-            {friends.length} friends
+            {friends?.length || 0} friends
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-3 flex-1">
-          {friends.slice(0, 6).map((friend) => (
-            <FriendCard key={friend.id} friend={friend} size="small" />
-          ))}
-        </div>
+        {friends && friends.length > 0 ? (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-3 flex-1">
+              {friends.slice(0, 6).map((friend, index) => (
+                <FriendCard key={friend.id || index} friend={friend} size="small" />
+              ))}
+            </div>
 
-        <button 
-          onClick={onSeeAllClick}
-          className="btn btn-outline btn-block mt-4"
-        >
-          See All Friends
-        </button>
+            {friends.length > 6 && (
+              <button 
+                onClick={onSeeAllClick}
+                className="btn btn-outline btn-block mt-4"
+              >
+                See All Friends
+              </button>
+            )}
+          </>
+        ) : (
+          <div className="text-center py-8 flex-1 flex flex-col items-center justify-center">
+            <Users className="w-12 h-12 text-base-content/20 mb-3" />
+            <p className="text-base-content/60">No friends yet</p>
+          </div>
+        )}
       </div>
     </div>
   );
