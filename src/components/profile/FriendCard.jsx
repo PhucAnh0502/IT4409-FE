@@ -8,12 +8,12 @@ const FriendCard = ({ friend, size = "small" }) => {
   const marginBottom = size === "large" ? "mb-2" : "mb-2";
   
   const displayName = friend.fullName || friend.userName || "Unknown";
-  const username = friend.userName || "unknown";
+  const username = friend.friendUserName || "unknown";
   
   // Use avatarUrl from database if available, otherwise generate fallback
   // Same logic as ProfilePage uses for user avatar
-  const avatarUrl = friend.avatarUrl 
-    ? friend.avatarUrl 
+  const avatarUrl = friend.friendAvatarUrl 
+    ? friend.friendAvatarUrl 
     : `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random`;
   
   
