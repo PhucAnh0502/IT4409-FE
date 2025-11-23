@@ -2,8 +2,8 @@ export const API = {
     AUTH: {
         LOGIN: '/Auth/login',
         REGISTER: '/Auth/register',
-        FORGOT_PASSWORD: '/User/forgot-password',
-        RESET_PASSWORD: '/User/reset-password',
+        FORGOT_PASSWORD: '/Auth/reset-password-mail',
+        RESET_PASSWORD: '/Auth/reset-password',
         CHANGE_PASSWORD: '/Auth/change-password',
     },
     USER: {
@@ -12,6 +12,14 @@ export const API = {
         GET_USER: (userId) => `/User/${userId}`,
         UPDATE_USER: (userId) => `/User/${userId}`,
         DELETE_USER: (userId) => `/User/${userId}`,
+    },
+    CONVERSATION: {
+        ALL_CONVERSATIONS: '/Conversation',
+        CREATE_CONVERSATION: '/Conversation',
+    },
+    MESSAGE: {
+        ALL_MESSAGES: (conversationId) => `/Messages/${conversationId}`,
+        SEND_MESSAGE: '/Messages',
     },
     FRIEND: {
         SEND_REQUEST: '/Friend/requests',

@@ -1,103 +1,212 @@
-import React from "react";
-import { Users } from "lucide-react";
+import React, { useEffect, useState, useMemo } from "react";
+import { Search, Plus } from "lucide-react";
+import { useConversationStore } from "../../stores/useConversationStore";
+import { formatMessageTimestamp } from "../../lib/utils";
+import { useFriendStore } from "../../stores/useFriendStore";
+import toast from "react-hot-toast";
+import SidebarSkeleton from "../skeletons/SidebarSkeleton";
+import FriendModal from "./FriendModal";
 
-const Sidebar = () => {
+const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) => {
+  const { conversations, getConversations, isGettingConversations, createConversation, isCreatingConversation } = useConversationStore();
+  const { friends, getFriendsList, isLoadingFriends } = useFriendStore();
+  const [isFriendModalOpen, setIsFriendModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery) return conversations || [];
+    const q = searchQuery.toLowerCase().trim();
+    return (conversations || []).filter((conv) => {
+      const name = (conv?.name || conv?.conversationName || "").toString().toLowerCase();
+      const last = (conv?.lastMessageContent || conv?.lastMessage || "").toString().toLowerCase();
+      return name.includes(q) || last.includes(q);
+    });
+  }, [conversations, searchQuery]);
+
+  useEffect(() => {
+    getConversations();
+  }, [getConversations]);
+
+  if (isGettingConversations) {
+    return <SidebarSkeleton />;
+  }
+
+  const openFriendModal = async () => {
+    try {
+      await getFriendsList();
+      setIsFriendModalOpen(true);
+    } catch (error) {
+      toast.error(error?.message || "Failed to load friends");
+    }
+  };
+
+
+  const handleCreateConversation = async (friend) => {
+    try {
+      const friendId = friend.friendUserId;
+      try {
+        await getConversations();
+      } catch {
+        // Ignore errors here
+      }
+
+      const existing = (conversations || [])?.find((conv) => {
+        if (!conv) return false;
+
+        if (conv.receiverId === friendId || conv.otherUserId === friendId || conv.friendUserId === friendId) return true;
+
+        const arrChecks = [conv.participants, conv.participantIds, conv.members, conv.users];
+        for (const arr of arrChecks) {
+          if (!Array.isArray(arr)) continue;
+          if (arr.some((p) => {
+            if (!p) return false;
+            if (typeof p === 'string') return p === friendId;
+            return p.id === friendId || p.userId === friendId || p.user?.id === friendId || p._id === friendId;
+          })) return true;
+        }
+
+        return false;
+      });
+
+      if (existing) {
+        const existingId = existing.conversationId || existing.id || existing._id;
+        if (existingId) {
+          setSelectedConversation(existingId);
+        }
+        setIsFriendModalOpen(false);
+        toast.success("Opened existing conversation");
+        return existingId || null;
+      }
+
+      if (isCreatingConversation) {
+        toast.loading('Creating conversation...');
+        return;
+      }
+
+      const payload = { receiverId: friendId };
+      const newConv = await createConversation(payload);
+
+      const newConvId = newConv?.conversationId;
+      if (newConvId) {
+        setSelectedConversation(newConvId);
+      }
+
+      setIsFriendModalOpen(false);
+      toast.success("Conversation created");
+      return newConvId || null;
+    } catch (error) {
+      toast.error(error?.message || "Failed to create conversation");
+      return null;
+    }
+  };
+
   return (
-    <aside className="h-full w-20 lg:w-72 border-r border-base-300 flex flex-col transition-all duration-200">
-      <div className="border-b border-base-300 w-full p-5">
-        <div className="flex items-center gap-2">
-          <Users className="size-6" />
-          <span className="font-medium hidden lg:block">Contacts</span>
+    <aside className="h-full w-full lg:w-80 border-r border-base-300 flex flex-col bg-base-100">
+      <div className="px-4 pt-5 pb-2">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-3xl font-bold text-base-content">Chats</h1>
+          <button
+            className="btn btn-sm btn-square btn-ghost hover:bg-base-300 rounded-lg"
+            onClick={openFriendModal}
+            aria-label="New conversation"
+          >
+            <Plus className="size-5 text-base-content" />
+          </button>
         </div>
 
-        <div className="mt-3 hidden lg:flex items-center gap-2">
-          <label className="cursor-pointer flex items-center gap-2">
-            <input type="checkbox" className="checkbox checkbox-sm" />
-            <span className="text-sm">Show online only</span>
-          </label>
-          <span className="text-xs text-zinc-500">(2 online)</span>
+        <div className="relative w-full">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <Search className="size-5 text-base-content/50" />
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search conversations"
+            className="input input-bordered w-full pl-10 h-10 rounded-xl bg-base-200 focus:outline-none focus:ring-1 focus:ring-primary border-none"
+            aria-label="Search conversations"
+          />
         </div>
       </div>
 
-      {/* Danh sách người dùng */}
-      <div className="overflow-y-auto w-full py-3">
-        <button
-          className={`
-            w-full p-3 flex items-center gap-3
-            hover:bg-base-300 transition-colors
-            bg-base-300 ring-1 ring-base-300 /* Class cho trạng thái "selected" */
-          `}
-        >
-          <div className="relative mx-auto lg:mx-0">
-            <img
-              src={"/vite.svg"}
-              alt={"Alice Smith"}
-              className="size-12 object-cover rounded-full"
-            />
+      <div className="overflow-y-auto w-full flex-1">
+        {filteredConversations?.map((conversation) => (
+          <button
+            key={conversation.id}
+            className={`
+              w-full p-3 flex items-center gap-3
+              transition-colors hover:bg-base-200
+              ${!conversation.isRead ? "bg-base-200/50" : ""} 
+              ${selectedConversation == conversation.id ? "bg-base-300" : ""}
+            `}
+            onClick={() => {
+              setSelectedConversation(conversation.id);
+              if (typeof onSelect === 'function') onSelect(conversation.id);
+            }}
+          >
+            <div className="avatar relative">
+              <div className="w-12 h-12 rounded-full overflow-hidden">
+                <img
+                  src={conversation.avatarUrl || "/default-avatar.png"}
+                  alt={conversation.name}
+                  className="object-cover w-full h-full"
+                />
+              </div>
+            </div>
 
-            <span
-              className="absolute bottom-0 right-0 size-3 bg-green-500 
-                rounded-full ring-1 ring-zinc-900"
-            />
+            <div className="text-left min-w-0 flex-1 flex flex-col justify-center">
+              <div className="flex justify-between items-baseline">
+                <span
+                  className={`truncate text-base ${
+                    !conversation.isRead ? "font-bold" : "font-medium text-base-content"
+                  }`}
+                >
+                  {conversation.name}
+                </span>
+                <span className="text-xs text-base-content/50 ml-2 whitespace-nowrap">
+                  {formatMessageTimestamp(conversation.lastMessageTime)}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span
+                  className={`truncate text-sm ${
+                    !conversation.isRead
+                      ? "font-bold" 
+                      : "text-base-content/60" 
+                  }`}
+                >
+                  {conversation.lastMessageContent || "Bắt đầu cuộc trò chuyện"}
+                </span>
+                
+                {!conversation.isRead && (
+                  <div className="size-2.5 bg-blue-500 rounded-full ml-2 shrink-0"></div>
+                )}
+              </div>
+            </div>
+          </button>
+        ))}
+        
+        {(!filteredConversations || filteredConversations.length === 0) && (
+          <div className="text-center text-base-content/50 py-10">
+            No conversations found
           </div>
-
-          <div className="hidden lg:block text-left min-w-0">
-            <div className="font-medium truncate">Alice Smith</div>
-            <div className="text-sm text-zinc-400">Online</div>
-          </div>
-        </button>
-
-        <button
-          className={`
-            w-full p-3 flex items-center gap-3
-            hover:bg-base-300 transition-colors
-          `}
-        >
-          <div className="relative mx-auto lg:mx-0">
-            <img
-              src={"/vite.svg"}
-              alt={"Bob Johnson"}
-              className="size-12 object-cover rounded-full"
-            />
-          </div>
-
-          <div className="hidden lg:block text-left min-w-0">
-            <div className="font-medium truncate">Bob Johnson</div>
-            <div className="text-sm text-zinc-400">Offline</div>
-          </div>
-        </button>
-
-        <button
-          className={`
-            w-full p-3 flex items-center gap-3
-            hover:bg-base-300 transition-colors
-          `}
-        >
-          <div className="relative mx-auto lg:mx-0">
-            <img
-              src={"/vite.svg"}
-              alt={"Charlie Brown"}
-              className="size-12 object-cover rounded-full"
-            />
-            <span
-              className="absolute bottom-0 right-0 size-3 bg-green-500 
-                rounded-full ring-1 ring-zinc-900"
-            />
-          </div>
-
-          <div className="hidden lg:block text-left min-w-0">
-            <div className="font-medium truncate">Charlie Brown</div>
-            <div className="text-sm text-zinc-400">Online</div>
-          </div>
-        </button>
-
-        {/*
-        <div className="text-center text-zinc-500 py-4">
-          No online users
-        </div>
-        */}
+        )}
       </div>
+
+      {/* Friend selection modal */}
+      <FriendModal
+        open={isFriendModalOpen}
+        onClose={() => setIsFriendModalOpen(false)}
+        friends={friends}
+        isLoading={isLoadingFriends}
+        onSelectFriend={async (friend) => {
+          const convId = await handleCreateConversation(friend);
+          if (convId && typeof onSelect === 'function') onSelect(convId);
+        }}
+      />
     </aside>
   );
 };
+
 export default Sidebar;

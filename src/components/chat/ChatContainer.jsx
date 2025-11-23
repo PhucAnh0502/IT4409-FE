@@ -1,69 +1,133 @@
-import React from "react";
+import React, { useEffect, useRef, useLayoutEffect } from "react";
 import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
+import { useConversationStore } from "../../stores/useConversationStore";
+import { useAuthStore } from "../../stores/useAuthStore";
+import { formatMessageTimestamp, getUserIdFromToken } from "../../lib/utils";
+import MessageSkeleton from "../skeletons/MessageSkeleton";
 
-const ChatContainer = () => {
+const ChatContainer = ({ conversationId = null, onClose = () => {} }) => {
+  const { 
+    messages, 
+    getMessages,      
+    loadMoreMessages, 
+    isMessagesLoading,
+    isLoadingMore,    
+    hasMore          
+  } = useConversationStore();
+
+  const { authUser } = useAuthStore();
+  const userId = getUserIdFromToken(authUser);
+  
+  const messageEndRef = useRef(null);       
+  const containerRef = useRef(null);       
+  const prevScrollHeightRef = useRef(0);   
+
+  useEffect(() => {
+    if (conversationId) {
+      getMessages(conversationId);
+    }
+  }, [conversationId, getMessages]);
+
+  useEffect(() => {
+    if (isMessagesLoading) return; 
+    
+    const container = containerRef.current;
+    if (!container || messages.length === 0) return;
+
+    const lastMessage = messages[messages.length - 1];
+    const isMyMessage = lastMessage?.senderId === userId;
+
+    if (!isLoadingMore && (isMyMessage || messages.length <= 20)) {
+        setTimeout(() => {
+            messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+    }
+  }, [messages, authUser.id, isMessagesLoading, isLoadingMore]);
+
+  useLayoutEffect(() => {
+    if (isLoadingMore || isMessagesLoading) return; 
+
+    if (prevScrollHeightRef.current > 0 && containerRef.current) {
+        const container = containerRef.current;
+        const heightDifference = container.scrollHeight - prevScrollHeightRef.current;
+        
+        container.scrollTop = heightDifference;
+        
+        prevScrollHeightRef.current = 0;
+    }
+  }, [messages, isLoadingMore, isMessagesLoading]);
+
+
+  const handleScroll = () => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    if (container.scrollTop === 0 && !isLoadingMore && hasMore) {
+        prevScrollHeightRef.current = container.scrollHeight;
+        
+        loadMoreMessages(conversationId);
+    }
+  };
+
+  if (isMessagesLoading) {
+    return (
+      <MessageSkeleton />
+    );
+  }
+
   return (
-    <div className="flex-1 flex flex-col overflow-auto">
-      <ChatHeader />
+    <div className="flex-1 flex flex-col overflow-auto bg-base-100">
+      <ChatHeader close={onClose} />
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* --- Tin nhắn mẫu 1: Người nhận (chat-start) - Chỉ text --- */}
-        <div className="chat chat-start">
-          <div className="chat-image avatar">
-            <div className="size-10 rounded-full border">
-              <img src={"/vite.svg"} alt="avatar" />
+      <div 
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-4 space-y-4 relative"
+      >
+        {isLoadingMore && (
+            <div className="text-center py-2">
+                <span className="loading loading-spinner loading-sm text-primary"></span>
             </div>
-          </div>
-          <div className="chat-header mb-1">
-            <time className="text-xs opacity-50 ml-1">10:00 AM</time>
-          </div>
-          <div className="chat-bubble flex flex-col">
-            <p>Hello! How are you?</p>
-          </div>
-        </div>
+        )}
 
-        {/* --- Tin nhắn mẫu 2: Người gửi (chat-end) - Text và Image --- */}
-        <div className="chat chat-end">
-          <div className="chat-image avatar">
-            <div className="size-10 rounded-full border">
-              <img src={"/vite.svg"} alt="avatar" />
-            </div>
+        {messages.length > 0 ? (
+          messages.map((message) => {
+            const isMe = message.senderId === userId;
+            return (
+              <div key={message.id} className={`chat ${isMe ? "chat-end" : "chat-start"}`}>
+                <div className="chat-image avatar">
+                  <div className="size-10 rounded-full border">
+                    <img
+                      src={isMe ? (authUser.avatarUrl || "/default-avatar.png") : (message.senderAvatarUrl || "/default-avatar.png")}
+                      alt="avatar"
+                    />
+                  </div>
+                </div>
+                <div className={`chat-bubble flex flex-col ${isMe ? "chat-bubble-primary" : "chat-bubble-secondary"}`}>
+                  {message.image && (
+                    <img src={message.image} alt="Attachment" className="sm:max-w-[200px] rounded-md mb-2" />
+                  )}
+                  <p>{message.content}</p>
+                </div>
+                <div className="chat-footer mb-1">
+                  <span className="text-xs opacity-50 ml-1">
+                    {formatMessageTimestamp(message.createdAt)}
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="text-center mt-10 text-gray-500">
+            Chưa có tin nhắn nào.
           </div>
-          <div className="chat-header mb-1">
-            <time className="text-xs opacity-50 ml-1">10:01 AM</time>
-          </div>
-          <div className="chat-bubble flex flex-col">
-            <img
-              src={"/vite.svg"}
-              alt="image"
-              className="sm:max-w-[200px] rounded-md mb-2"
-            />
-            <p>I'm good, thanks! Check out this image.</p>
-          </div>
-        </div>
-
-        {/* --- Tin nhắn mẫu 3: Người nhận (chat-start) - Chỉ Image --- */}
-        <div className="chat chat-start">
-          <div className="chat-image avatar">
-            <div className="size-10 rounded-full border">
-              <img src={"/vite.svg"} alt="avatar" />
-            </div>
-          </div>
-          <div className="chat-header mb-1">
-            <time className="text-xs opacity-50 ml-1">10:02 AM</time>
-          </div>
-          <div className="chat-bubble flex flex-col">
-            <img
-              src={"/vite.svg"}
-              alt="image"
-              className="sm:max-w-[200px] rounded-md"
-            />
-          </div>
-        </div>
+        )}
+        
+        <div ref={messageEndRef} />
       </div>
 
-      <MessageInput />
+      <MessageInput conversationId={conversationId} />
     </div>
   );
 };

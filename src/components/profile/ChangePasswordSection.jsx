@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import { useAuthStore } from "../../stores/useAuthStore";
 
 const ChangePasswordSection = ({ userId }) => {
-  const { changePassword } = useAuthStore();
+  const { changePassword, isChangingPassword } = useAuthStore();
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
@@ -239,8 +239,14 @@ const ChangePasswordSection = ({ userId }) => {
               type="submit"
               className="btn btn-primary w-full md:w-auto min-w-[200px]"
             >
-              <KeyRound className="w-5 h-5" />
-              Change Password
+              {isChangingPassword ? (
+                <span className="loading loading-spinner mr-2"></span>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <KeyRound className="w-5 h-5" />
+                  Change Password
+                </div>
+              )}
             </button>
           </div>
         </form>

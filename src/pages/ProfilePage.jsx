@@ -18,16 +18,12 @@ const ProfilePage = () => {
   // Get user store
   const {      
     isLoadingUser, 
-    isLoadingFriends,
     isUpdatingUser,
     getUserById, 
     updateUser 
   } = useUserStore();
-  const { 
-    friends: storeFriends,
-    getUserFriends 
-  } = useFriendStore();
-  
+
+  const { friends, getFriendsList } = useFriendStore()
   // Active tab state
   const [activeTab, setActiveTab] = useState("about"); // "about" or "friends"
   
@@ -40,9 +36,6 @@ const ProfilePage = () => {
     bio: "No bio provided",
     phone: "No phone number"
   });
-
-  // Use friends from store, fallback to empty array
-  const friends = storeFriends || [];
 
   // Edit state
   const [editMode, setEditMode] = useState({
@@ -154,9 +147,7 @@ const ProfilePage = () => {
     });
 
     // Fetch user friends list
-    getUserFriends(userId).catch((error) => {
-      console.error("Failed to fetch friends list:", error);
-    });
+    getFriendsList()
   }, []);
 
   // Handle avatar change - just open cropper
@@ -222,7 +213,7 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-base-200 pt-16">
       {/* Loading State */}
-      {(isLoadingUser || isLoadingFriends || isUpdatingUser) && (
+      {(isLoadingUser || isUpdatingUser) && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="loading loading-spinner loading-lg text-primary"></div>
         </div>
