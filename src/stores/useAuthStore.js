@@ -10,6 +10,7 @@ export const useAuthStore = create((set) => ({
     isLoggingIn: false,
     isGettingResetEmail: false,
     isResettingPassword: false,
+    isChangingPassword: false,
     isCheckingAuth: true,
     onlineUsers: [],
     login: async (data) => {
@@ -71,6 +72,7 @@ export const useAuthStore = create((set) => ({
         }
     },
     changePassword: async (data) => {
+        set({ isChangingPassword: true });
         try {
             const payload = {
                 id: data.userId,
@@ -82,7 +84,9 @@ export const useAuthStore = create((set) => ({
             toast.success("Password changed successfully!");
             return res;
         } catch (error) {
-            throw error;
+            toast.error(error?.message || "Error in changing password");
+        } finally {
+            set({ isChangingPassword: false });
         }
     }
 }))

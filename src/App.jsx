@@ -11,15 +11,47 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage"
 import ProfilePage from "./pages/ProfilePage"
 import HomePage from "./pages/HomePage"
 import ResetPasswordPage from "./pages/ResetPasswordPage"
+import useSignalR from "./hooks/useSignalR"
+import { SignalRProvider } from "./contexts/SignalRContext"
+import { useConversationStore } from "./stores/useConversationStore"
+import { useEffect } from "react"
 
 function App() {
   const {theme} = useThemeStore();
+  const hubUrl = import.meta.env.VITE_SIGNALR_HUB;
+  const connection = useSignalR(hubUrl);
+  const {appendMessage} = useConversationStore();
+
+  useEffect(() => {
+    if (!connection) return;
+
+    const handler = (payload) => {
+      console.debug("SignalR ReceiveMessage payload:", payload);
+      const conversationId = payload?.conversationId;
+      const message = payload;
+      if (conversationId) {
+        appendMessage(conversationId.toString(), message);
+      } else {
+        appendMessage(null, message);
+      }
+    };
+
+    connection.on("ReceiveMessage", handler);
+
+    return () => {
+      try { connection.off("ReceiveMessage", handler); } 
+      catch (e) {
+        console.log("Failed to unregister ReceiveMessage handler:", e);
+      }
+    };
+  }, [connection, appendMessage]);
 
   return (
-    <div data-theme={theme}>
-      <Navbar />
+    <SignalRProvider connection={connection}>
+      <div data-theme={theme}>
+        <Navbar />
 
-      <Routes>
+        <Routes>
         <Route element={
           <PrivateRoutes>
             <Outlet />
@@ -34,10 +66,11 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+        </Routes>
 
-      <Toaster />
-    </div>
+        <Toaster />
+      </div>
+    </SignalRProvider>
   )
 }
 

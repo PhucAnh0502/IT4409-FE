@@ -5,9 +5,7 @@ import { API } from "../lib/api.js";
 
 export const useUserStore = create((set) => ({
     user: null,
-    friends: [],
     isLoadingUser: false,
-    isLoadingFriends: false,
     isUpdatingUser: false,
 
     // Get user by ID
