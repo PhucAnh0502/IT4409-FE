@@ -29,6 +29,9 @@ function App() {
       console.debug("SignalR ReceiveMessage payload:", payload);
       const conversationId = payload?.conversationId;
       const message = payload;
+      if (!message.createdAt) {
+          message.createdAt = new Date().toISOString();
+      }
       if (conversationId) {
         appendMessage(conversationId.toString(), message);
       } else {
