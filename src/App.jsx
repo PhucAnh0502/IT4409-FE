@@ -15,6 +15,7 @@ import useSignalR from "./hooks/useSignalR"
 import { SignalRProvider } from "./contexts/SignalRContext"
 import { useConversationStore } from "./stores/useConversationStore"
 import { useEffect } from "react"
+import FriendsPage from "./pages/FriendsPage"
 
 function App() {
   const {theme} = useThemeStore();
@@ -65,6 +66,7 @@ function App() {
         <Route path="/settings" element={<SettingsPages />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/friends" element={<FriendsPage />} />
         <Route path="*" element={<NotFoundPage />} />
         </Routes>
 
