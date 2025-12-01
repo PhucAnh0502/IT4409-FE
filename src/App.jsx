@@ -22,28 +22,33 @@ function App() {
   const connection = useSignalR(hubUrl);
   const {appendMessage} = useConversationStore();
 
+
   useEffect(() => {
     if (!connection) return;
 
     const handler = (payload) => {
+      
       console.debug("SignalR ReceiveMessage payload:", payload);
       const conversationId = payload?.conversationId;
       const message = payload;
+      
       if (!message.createdAt) {
-          message.createdAt = new Date().toISOString();
+        message.createdAt = new Date().toISOString();
       }
+      
       if (conversationId) {
         appendMessage(conversationId.toString(), message);
       } else {
         appendMessage(null, message);
       }
     };
-
+    
     connection.on("ReceiveMessage", handler);
-
+    
     return () => {
-      try { connection.off("ReceiveMessage", handler); } 
-      catch (e) {
+      try { 
+        connection.off("ReceiveMessage", handler); 
+      } catch (e) {
         console.log("Failed to unregister ReceiveMessage handler:", e);
       }
     };

@@ -44,18 +44,24 @@ export const useConversationStore = create((set, get) => ({
     },
 
     getMessages: async (conversationId) => {
+        if (!conversationId) {
+            set({ messages: [], isMessagesLoading: false });
+            return;
+        }
+        
         set({ isMessagesLoading: true, messages: [], page: 1, hasMore: true });
         try {
             const response = await authAxiosInstance.get(`${API.MESSAGE.ALL_MESSAGES(conversationId)}?pageNumber=1&pageSize=20`);
 
-            const newMessages = response; 
+            const newMessages = Array.isArray(response) ? response : []; 
 
             set({ 
                 messages: newMessages,
                 hasMore: newMessages.length >= 20 
             });
         } catch (error) {
-            toast.error(error?.message || "Failed to load messages");
+            toast.error(error?.message || "Error in getting messages");
+            set({ messages: [] });
         } finally {
             set({ isMessagesLoading: false });
         }
@@ -89,11 +95,18 @@ export const useConversationStore = create((set, get) => ({
 ,
 
     appendMessage: (conversationId, message) => {
+        if (!message) return;
+        
         set((state) => {
-            const messages = state.selectedConversation === conversationId ? [...state.messages, message] : state.messages;
+            const currentMessages = state.messages || [];
+            const messages = state.selectedConversation === conversationId 
+                ? [...currentMessages, message] 
+                : currentMessages;
 
             let conversations = state.conversations || [];
-            const idx = conversations.findIndex((c) => c.id === conversationId);
+            if (!conversationId) return { messages, conversations };
+            
+            const idx = conversations.findIndex((c) => c?.id === conversationId);
             if (idx !== -1) {
                 const conv = { ...conversations[idx] };
                 conv.lastMessageContent = message.content;

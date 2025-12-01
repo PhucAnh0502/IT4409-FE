@@ -1,6 +1,6 @@
 import axios from "axios";
 import { toast } from "react-hot-toast";
-import { getToken } from "./utils";
+import { getToken, removeToken } from "./utils";
 
 const baseURL = import.meta.env.VITE_BASE_API_URL;
 
@@ -52,7 +52,7 @@ authAxiosInstance.interceptors.response.use(
         error.response.data?.message?.toLowerCase().includes("unauthorized"))
     ) {
       toast.error("Your session has expired. Please log in again.");
-      sessionStorage.clear();
+      removeToken();
       setTimeout(() => {
         window.location.href = "/login";
       }, 1500);

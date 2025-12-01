@@ -57,7 +57,7 @@ const ChatContainer = ({ conversationId = null, onClose = () => {} }) => {
   } = useConversationStore();
 
   const { authUser } = useAuthStore();
-  const userId = getUserIdFromToken(authUser);
+  const userId = getUserIdFromToken() || authUser?.id;
 
   const messageEndRef = useRef(null);
   const containerRef = useRef(null);
@@ -73,7 +73,7 @@ const ChatContainer = ({ conversationId = null, onClose = () => {} }) => {
     if (isMessagesLoading) return;
 
     const container = containerRef.current;
-    if (!container || messages.length === 0) return;
+    if (!container || !messages || messages.length === 0) return;
 
     const lastMessage = messages[messages.length - 1];
     const isMyMessage = lastMessage?.senderId === userId;
@@ -83,7 +83,7 @@ const ChatContainer = ({ conversationId = null, onClose = () => {} }) => {
         messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
       }, 100);
     }
-  }, [messages, authUser.id, isMessagesLoading, isLoadingMore]);
+  }, [messages, userId, isMessagesLoading, isLoadingMore]);
 
   useLayoutEffect(() => {
     if (isLoadingMore || isMessagesLoading) return;
@@ -116,7 +116,7 @@ const ChatContainer = ({ conversationId = null, onClose = () => {} }) => {
 
   return (
     <div className="flex-1 flex flex-col overflow-auto bg-base-100">
-      <ChatHeader close={onClose} message={messages[0]} />
+      <ChatHeader close={onClose} message={messages?.[0] || null} />
 
       <div
         ref={containerRef}
@@ -129,20 +129,22 @@ const ChatContainer = ({ conversationId = null, onClose = () => {} }) => {
           </div>
         )}
 
-        {messages.length > 0 ? (
+        {messages && messages.length > 0 ? (
           messages.map((message, index) => {
+            if (!message) return null;
+            
             const isMe = message.senderId === userId;
             
             const currentMessageDate = message.createdAt;
             const prevMessageDate =
-              index > 0 ? messages[index - 1].createdAt : null;
+              index > 0 ? messages[index - 1]?.createdAt : null;
 
             const showDateSeparator =
               !prevMessageDate ||
               !isSameDay(currentMessageDate, prevMessageDate);
 
             return (
-              <React.Fragment key={message.id}>
+              <React.Fragment key={message.id || `msg-${index}`}>
                 {showDateSeparator && (
                   <DateSeparator date={currentMessageDate} />
                 )}

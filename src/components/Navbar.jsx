@@ -4,7 +4,8 @@ import { LogOut, MessageSquare, Settings, User } from "lucide-react";
 import { useAuthStore } from "../stores/useAuthStore";
 
 const Navbar = () => {
-  const {authUser, logout} = useAuthStore();
+  const {authUser, logout, accessToken} = useAuthStore();
+  const isAuthenticated = authUser || accessToken; // Check cả authUser và accessToken
 
   return (
     <header className=" border-b border-base-300 fixed w-full top-0 z-40 backdrop-blur-lg bg-base-100/80">
@@ -39,7 +40,7 @@ const Navbar = () => {
               <span className="hidden sm:inline">Settings</span>
             </Link>
 
-            {authUser && (
+            {isAuthenticated && (
               <>
                 <button className="flex gap-2 items-center" onClick={logout}>
                   <LogOut className="size-5"/>

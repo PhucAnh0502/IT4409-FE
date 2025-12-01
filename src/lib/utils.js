@@ -8,11 +8,25 @@ export function formatMessageTimestamp(date) {
 }
 
 export function getToken(){
-  return sessionStorage.getItem("token");
+   try {
+    return sessionStorage.getItem("token");
+  } catch (error) {
+    console.error("Failed to get token from sessionStorage:", error);
+    return null;
+  }
 }
 
 export function setToken(token){
-  sessionStorage.setItem("token", token);
+  try {
+    if(token){
+      sessionStorage.setItem("token", token);
+    } else {
+      sessionStorage.removeItem("token");
+    }
+  } catch (error) {
+    console.error("Failed to set token in sessionStorage:", error);
+  }
+  
 }
 
 export function removeToken(){
