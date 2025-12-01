@@ -3,13 +3,14 @@ import Sidebar from '../components/friends/homepage/Sidebar';
 import MainContent from '../components/friends/homepage/MainContent';
 import RequestsPage from '../components/friends/requestspage/RequestsPage';
 import FriendsListPage from '../components/friends/friendsListpage/FriendsListPage';
+import AddFriendPage from '../components/friends/addfriendpage/AddFriendPage';
 
 const FriendsPage = () => {
   // State-based routing logic moved here
   const [currentPage, setCurrentPage] = useState('home');
 
   const handleNavigate = (page) => {
-    if (page === 'home' || page === 'requests' || page === 'all_friends') {
+    if (page === 'home' || page === 'requests' || page === 'all_friends' || page === 'add_friend') {
       setCurrentPage(page);
     }
   };
@@ -22,6 +23,11 @@ const FriendsPage = () => {
   // Render Friends List Page
   if (currentPage === 'all_friends') {
     return <FriendsListPage onNavigate={handleNavigate} />;
+  }
+
+  // Render Add Friend Page
+  if (currentPage === 'add_friend') {
+    return <AddFriendPage onNavigate={handleNavigate} />;
   }
 
   // Render Default Homepage Layout
