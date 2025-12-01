@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Home, UserPlus, Users, ArrowLeft } from 'lucide-react';
+import { Search, Home, UserPlus, UserPlus2, Users, ArrowLeft } from 'lucide-react';
 import SidebarItem from './SidebarItem';
 
 const Sidebar = ({ onNavigate }) => {
@@ -16,6 +16,13 @@ const Sidebar = ({ onNavigate }) => {
       id: 'requests',
       label: 'Friend Requests',
       icon: UserPlus,
+      isActive: false,
+      hasChevron: true,
+    },
+    {
+      id: 'add_friend',
+      label: 'Add Friends',
+      icon: UserPlus2,
       isActive: false,
       hasChevron: true,
     },
@@ -37,6 +44,11 @@ const Sidebar = ({ onNavigate }) => {
     // Navigation Logic
     if (id === 'requests' && onNavigate) {
       onNavigate('requests');
+      return;
+    }
+    
+    if (id === 'add_friend' && onNavigate) {
+      onNavigate('add_friend');
       return;
     }
     
