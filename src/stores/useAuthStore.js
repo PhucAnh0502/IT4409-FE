@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { publicAxiosInstance, authAxiosInstance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { API } from "../lib/api.js";
-import { setToken, removeToken } from "../lib/utils.js";
+import { setToken, removeToken, getToken } from "../lib/utils.js";
 
 export const useAuthStore = create((set) => ({
     authUser: null,
@@ -13,12 +13,33 @@ export const useAuthStore = create((set) => ({
     isChangingPassword: false,
     isCheckingAuth: true,
     onlineUsers: [],
+    accessToken: getToken(),
+    
+    // Khôi phục auth state từ token khi reload
+    initializeAuth: () => {
+        const token = getToken();
+        if (token) {
+            // Nếu có token, set authUser với token (minimal state)
+            set({ 
+                authUser: { token }, // Minimal auth state
+                accessToken: token 
+            });
+        }
+    },
     login: async (data) => {
         set({ isLoggingIn: true });
         try {
             const res = await publicAxiosInstance.post(API.AUTH.LOGIN, data);
-            setToken(res.token);
-            set({ authUser: res });
+            const token = res.token;
+            if(token){
+                setToken(token);
+            } else {
+                throw new Error("No token received");
+            }
+            set({ 
+                authUser: res,
+                accessToken: token || getToken(),
+             });
             toast.success("Logged in successfully");
             return res;
         } catch (error) {
@@ -42,12 +63,12 @@ export const useAuthStore = create((set) => ({
     logout: () => {
         try {
             removeToken();
-            set({ authUser: null });
+            set({ authUser: null, accessToken: null });
             toast.success('Logged out successfully');
             window.location.href = '/login';
         } catch (e) {
             toast.error('Logout failed', e);
-        }
+        } 
     },
     forgotPassword: async (data) => {
         set({ isGettingResetEmail: true });

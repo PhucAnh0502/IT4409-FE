@@ -5,28 +5,69 @@ import { getToken } from "../lib/utils";
 const useSignalR = (hubUrl) => {
     const [connection, setConnection] = useState(null);
     const connectionRef = useRef(null);
+    const retryCountRef = useRef(0);
+    const maxRetries = 3;
     const authToken = getToken();
 
     useEffect(() => {
+        // Không kết nối nếu không có token hoặc URL
+        if (!authToken || !hubUrl) {
+            console.log("SignalR: No token or hubUrl found, skipping connection");
+            return;
+        }
+
         const newConnection = new signalR.HubConnectionBuilder()
             .withUrl(hubUrl, {
-                accessTokenFactory: () => authToken,
+                accessTokenFactory: () => authToken, // Sử dụng token từ storage
                 skipNegotiation: true,
                 transport: signalR.HttpTransportType.WebSockets
             })
-            .withAutomaticReconnect()
-            .configureLogging(signalR.LogLevel.Information)
+            .withAutomaticReconnect({
+                nextRetryDelayInMilliseconds: (retryContext) => {
+                    // Exponential backoff: 2s, 4s, 8s, 16s, max 30s
+                    return Math.min(2000 * Math.pow(2, retryContext.previousRetryCount), 30000);
+                }
+            })
+            .configureLogging(signalR.LogLevel.Warning) // Giảm log xuống Warning
             .build();
+        
+        // Handle reconnection events
+        newConnection.onreconnecting((error) => {
+            console.log("SignalR reconnecting...", error?.message);
+        });
+
+        newConnection.onreconnected(() => {
+            console.log("SignalR reconnected");
+            retryCountRef.current = 0;
+        });
+
+        newConnection.onclose((error) => {
+            console.log("SignalR connection closed", error?.message);
+        });
         
         connectionRef.current = newConnection;
         setConnection(newConnection);
 
         const startConnection = async () => {
+            if (retryCountRef.current >= maxRetries) {
+                console.log("SignalR: Max retries reached, giving up");
+                return;
+            }
+
             try {
                 await newConnection.start();
-                console.log("SignalR Connected.");  
+                console.log("SignalR Connected");
+                retryCountRef.current = 0;
             } catch (error) {
-                console.error("SignalR Connection Error: ", error);
+                console.warn("SignalR Connection failed:", error?.message);
+                retryCountRef.current++;
+                
+                // Retry after delay if not at max retries
+                if (retryCountRef.current < maxRetries) {
+                    const delay = 2000 * Math.pow(2, retryCountRef.current);
+                    console.log(`SignalR: Retrying in ${delay/1000}s (attempt ${retryCountRef.current}/${maxRetries})`);
+                    setTimeout(startConnection, delay);
+                }
             }
         }
 
@@ -34,10 +75,12 @@ const useSignalR = (hubUrl) => {
 
         return () => {
             if (connectionRef.current) {
-                connectionRef.current.stop().then(() => console.log("SignalR Disconnected."));
+                connectionRef.current.stop()
+                    .then(() => console.log("SignalR Disconnected"))
+                    .catch((err) => console.warn("SignalR disconnect error:", err?.message));
             }
         }
-    }, [hubUrl, authToken]);
+    }, [hubUrl, authToken]); // Re-run khi token thay đổi
 
     return connection;
 }
