@@ -1,6 +1,20 @@
 import React from 'react';
 
-const RequestItem = ({ name, avatarUrl, mutualFriends, time }) => {
+const RequestItem = ({ id, name, avatarUrl, mutualFriends, time, onAccept, onDelete }) => {
+  const handleConfirm = (e) => {
+    e.stopPropagation();
+    if (onAccept) {
+      onAccept(id);
+    }
+  };
+
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete(id);
+    }
+  };
+
   return (
     <div className="flex gap-3 p-2 hover:bg-base-200 rounded-lg cursor-pointer transition-colors relative group">
       {/* Avatar */}
@@ -22,14 +36,20 @@ const RequestItem = ({ name, avatarUrl, mutualFriends, time }) => {
             </p>
           </div>
           {/* Time */}
-          <span className="text-[12px] text-base-content/60 absolute top-2 right-2">{time}</span>
+          {time && <span className="text-[12px] text-base-content/60 absolute top-2 right-2">{time}</span>}
         </div>
 
         <div className="flex gap-2 mt-1">
-          <button className="flex-1 bg-primary hover:bg-primary/90 text-primary-content text-[15px] font-semibold py-[6px] rounded-[6px] transition-colors">
+          <button 
+            onClick={handleConfirm}
+            className="flex-1 bg-primary hover:bg-primary/90 text-primary-content text-[15px] font-semibold py-[6px] rounded-[6px] transition-colors"
+          >
             Confirm
           </button>
-          <button className="flex-1 bg-base-300 hover:bg-base-content/20 text-base-content text-[15px] font-semibold py-[6px] rounded-[6px] transition-colors">
+          <button 
+            onClick={handleDelete}
+            className="flex-1 bg-base-300 hover:bg-base-content/20 text-base-content text-[15px] font-semibold py-[6px] rounded-[6px] transition-colors"
+          >
             Delete
           </button>
         </div>
