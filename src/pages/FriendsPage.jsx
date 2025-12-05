@@ -4,7 +4,6 @@ import MainContent from '../components/friends/MainContent';
 import AddFriendPage from '../components/friends/addfriendpage/AddFriendPage';
 
 const FriendsPage = () => {
-  // State-based routing: default (requests) or add_friend
   const [currentPage, setCurrentPage] = useState('requests');
 
   const handleNavigate = (page) => {
