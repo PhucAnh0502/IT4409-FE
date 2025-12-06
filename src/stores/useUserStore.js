@@ -23,6 +23,20 @@ export const useUserStore = create((set) => ({
         }
     },
 
+    // Get all users with pagination
+    getAllUsers: async (pageNumber, pageSize) => {
+        set({ isLoadingUser: true });
+        try {
+            const res = await authAxiosInstance.get(`${API.USER.ALL_USER}?PageNumber=${pageNumber}&PageSize=${pageSize}`);
+            return res.userList?.data || [];
+        } catch (error) {
+            toast.error(error?.message || "Error fetching users");
+            throw error;
+        } finally {
+            set({ isLoadingUser: false });
+        }
+    },
+
     // Update user
     updateUser: async (userId, data) => {
         set({ isUpdatingUser: true });

@@ -27,7 +27,13 @@ const Sidebar = ({
         setDisplayedItems(dataList);
       } else {
         const lower = searchQuery.toLowerCase();
-        setDisplayedItems(dataList.filter(item => item.name.toLowerCase().includes(lower)));
+        const filtered = dataList.filter(item => {
+          const nameMatch = item.name?.toLowerCase().includes(lower); // Partial match for name
+          const phoneStr = item.phone ? String(item.phone).toLowerCase() : '';
+          const phoneMatch = phoneStr === lower; // Exact match for phone
+          return nameMatch || phoneMatch;
+        });
+        setDisplayedItems(filtered);
       }
     }, 300);
 
