@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import AddFriendSidebarWrapper from './AddFriendSidebarWrapper';
 import MainContent from '../MainContent';
-import AddFriendProfilePreview from './AddFriendProfilePreview';
+import UserProfilePreview from '../UserProfilePreview';
 
 const AddFriendPage = ({ onNavigate }) => {
   const [selectedUser, setSelectedUser] = useState(null);
@@ -17,13 +17,17 @@ const AddFriendPage = ({ onNavigate }) => {
         <AddFriendSidebarWrapper 
           onBack={() => onNavigate('requests')} 
           onUserSelect={handleUserSelect}
+          selectedItemId={selectedUser?.id}
         />
       </div>
       
       {/* Right Content - Flexible width */}
       <div className="flex-1 min-w-0 h-screen overflow-hidden">
         {selectedUser ? (
-          <AddFriendProfilePreview userData={selectedUser} />
+          <UserProfilePreview 
+            userData={selectedUser}
+            statusText="Friend Request Sent · Waiting for response"
+          />
         ) : (
           <MainContent 
             iconType="group"

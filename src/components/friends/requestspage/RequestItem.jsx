@@ -1,6 +1,6 @@
 import React from 'react';
 
-const RequestItem = ({ id, name, avatarUrl, mutualFriends, time, onAccept, onDelete }) => {
+const RequestItem = ({ id, name, avatarUrl, message, mutualFriends, time, onAccept, onDelete, onClick, isSelected }) => {
   const handleConfirm = (e) => {
     e.stopPropagation();
     if (onAccept) {
@@ -16,7 +16,14 @@ const RequestItem = ({ id, name, avatarUrl, mutualFriends, time, onAccept, onDel
   };
 
   return (
-    <div className="flex gap-3 p-2 hover:bg-base-200 rounded-lg cursor-pointer transition-colors relative group">
+    <div 
+      onClick={onClick}
+      className={`flex gap-3 p-2 rounded-lg cursor-pointer transition-all relative group ${
+        isSelected 
+          ? 'bg-primary/10 border-l-4 border-primary shadow-sm' 
+          : 'hover:bg-base-200 border-l-4 border-transparent'
+      }`}
+    >
       {/* Avatar */}
       <div className="w-[60px] h-[60px] flex-shrink-0">
         <img 
@@ -31,9 +38,11 @@ const RequestItem = ({ id, name, avatarUrl, mutualFriends, time, onAccept, onDel
         <div className="flex justify-between items-start">
           <div className="pr-8"> {/* Padding right to avoid overlap with time */}
             <h3 className="text-[15px] font-semibold text-base-content leading-5">{name}</h3>
-            <p className="text-[13px] text-base-content/60 mb-2 truncate">
-              {mutualFriends > 0 ? `${mutualFriends} mutual friends` : '0 mutual friends'}
-            </p>
+            {message && (
+              <p className="text-[13px] text-base-content/60 mb-2 truncate italic">
+                {message}
+              </p>
+            )}
           </div>
           {/* Time */}
           {time && <span className="text-[12px] text-base-content/60 absolute top-2 right-2">{time}</span>}

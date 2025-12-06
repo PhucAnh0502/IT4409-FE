@@ -13,7 +13,8 @@ const Sidebar = ({
   ItemComponent,
   renderSubtitle,
   onItemClick,
-  itemComponentProps = {}
+  itemComponentProps = {},
+  selectedItemId // NEW: Track selected item
 }) => {
   const navigate = useNavigate();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -123,6 +124,7 @@ const Sidebar = ({
                       {...item}
                       {...itemComponentProps}
                       onClick={() => onItemClick && onItemClick(item)}
+                      isSelected={selectedItemId === item.id}
                   />
               ))
             ) : (

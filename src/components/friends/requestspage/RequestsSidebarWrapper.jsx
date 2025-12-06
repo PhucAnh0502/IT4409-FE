@@ -1,15 +1,85 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Sidebar from '../Sidebar';
 import RequestItem from './RequestItem';
 import { useFriendStore } from '../../../stores/useFriendStore';
+import { useUserStore } from '../../../stores/useUserStore';
 
-const RequestsSidebarWrapper = ({ onNavigate }) => {
+const RequestsSidebarWrapper = ({ onNavigate, onUserSelect, selectedItemId }) => {
   const { receivedRequests, isLoadingRequests, getReceivedRequests, acceptFriendRequest, deleteFriendRequest } = useFriendStore();
+  const { getUserById } = useUserStore();
+  const [enrichedRequests, setEnrichedRequests] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load received requests on mount
   useEffect(() => {
-    getReceivedRequests();
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        await getReceivedRequests();
+      } catch (error) {
+        console.error('Failed to fetch received requests:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
   }, [getReceivedRequests]);
+
+  // Fetch user details for each sender when receivedRequests changes
+  useEffect(() => {
+    const enrichRequestsWithUserData = async () => {
+      if (!receivedRequests || receivedRequests.length === 0) {
+        setEnrichedRequests([]);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        // Fetch user details for each sender
+        const enrichedData = await Promise.all(
+          receivedRequests.map(async (request) => {
+            try {
+              // Get user details for the sender
+              const userData = await getUserById(request.senderId);
+              
+              const enrichedItem = {
+                ...request,
+                // Add user details for Sidebar search
+                name: userData.fullName || request.senderName || 'Unknown',
+                phone: userData.phone ? String(userData.phone) : '',
+                // Add user details for RequestItem display
+                avatarUrl: userData.avatarUrl || 'https://via.placeholder.com/60',
+                senderFullName: userData.fullName || request.senderName || 'Unknown',
+                senderAvatar: userData.avatarUrl || 'https://via.placeholder.com/60',
+                senderBio: userData.bio,
+                senderEmail: userData.email,
+                senderPhone: userData.phone,
+                senderUserName: userData.userName,
+                senderCreatedAt: userData.createdAt,
+              };
+              
+              return enrichedItem;
+            } catch (error) {
+              console.error(`Failed to fetch user ${request.senderId}:`, error);
+              return null;
+            }
+          })
+        );
+        
+        // Filter out null values
+        const validData = enrichedData.filter(item => item !== null);
+        setEnrichedRequests(validData);
+      } catch (error) {
+        console.error('Failed to enrich requests:', error);
+        setEnrichedRequests(receivedRequests);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    enrichRequestsWithUserData();
+  }, [receivedRequests, getUserById]);
 
   const renderSubtitle = (searchQuery, displayedItems) => {
     const count = receivedRequests?.length || 0;
@@ -49,7 +119,7 @@ const RequestsSidebarWrapper = ({ onNavigate }) => {
   };
 
   // Show loading state
-  if (isLoadingRequests) {
+  if (isLoading) {
     return (
       <div className="w-full h-screen bg-base-100 shadow-sm flex flex-col items-center justify-center">
         <div className="loading loading-spinner loading-lg text-primary"></div>
@@ -64,9 +134,11 @@ const RequestsSidebarWrapper = ({ onNavigate }) => {
       useNavigateBack={true}
       navigateBackPath="/"
       searchPlaceholder="Search requests"
-      dataList={receivedRequests || []}
+      dataList={enrichedRequests || []}
       ItemComponent={RequestItem}
       renderSubtitle={renderSubtitle}
+      onItemClick={onUserSelect}
+      selectedItemId={selectedItemId}
       itemComponentProps={{
         onAccept: handleAcceptRequest,
         onDelete: handleDeleteRequest

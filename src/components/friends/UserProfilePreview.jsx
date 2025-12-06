@@ -1,34 +1,36 @@
 import React from 'react';
 import { Mail, User, MessageCircle, Phone, Calendar, MessageSquare } from 'lucide-react';
 
-const AddFriendProfilePreview = ({ userData }) => {
+const UserProfilePreview = ({ userData, statusText = "Friend Request Sent · Waiting for response" }) => {
   if (!userData) return null;
 
   const {
-    receiverFullName,
-    receiverAvatar,
-    receiverEmail,
-    receiverBio,
-    receiverPhone,
-    receiverUserName,
-    receiverCreatedAt,
+    // Support both receiver* and sender* prefixes
+    receiverFullName, senderFullName,
+    receiverAvatar, senderAvatar,
+    receiverEmail, senderEmail,
+    receiverBio, senderBio,
+    receiverPhone, senderPhone,
+    receiverUserName, senderUserName,
+    receiverCreatedAt, senderCreatedAt,
     message, // Message from friend request
     name,
     avatarUrl,
   } = userData;
 
-  // Use receiver-specific data or fallback to general data
-  const displayName = receiverFullName || name || 'Unknown User';
-  const displayAvatar = receiverAvatar || avatarUrl || 'https://via.placeholder.com/150';
-  const displayEmail = receiverEmail || 'No email provided';
-  const displayBio = receiverBio || 'No bio available';
-  const displayPhone = receiverPhone || null;
-  const displayUserName = receiverUserName || null;
+  // Use receiver-specific or sender-specific data, with fallback to general data
+  const displayName = receiverFullName || senderFullName || name || 'Unknown User';
+  const displayAvatar = receiverAvatar || senderAvatar || avatarUrl || 'https://via.placeholder.com/150';
+  const displayEmail = receiverEmail || senderEmail || 'No email provided';
+  const displayBio = receiverBio || senderBio || 'No bio available';
+  const displayPhone = receiverPhone || senderPhone || null;
+  const displayUserName = receiverUserName || senderUserName || null;
   const displayMessage = message || null;
   
   // Format member since date
-  const displayMemberSince = receiverCreatedAt 
-    ? new Date(receiverCreatedAt).toLocaleDateString('en-US', { 
+  const createdAt = receiverCreatedAt || senderCreatedAt;
+  const displayMemberSince = createdAt 
+    ? new Date(createdAt).toLocaleDateString('en-US', { 
         year: 'numeric', 
         month: 'long', 
         day: 'numeric' 
@@ -55,12 +57,14 @@ const AddFriendProfilePreview = ({ userData }) => {
               <h1 className="text-4xl font-bold text-base-content mb-2">
                 {displayName}
               </h1>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-2 h-2 bg-warning rounded-full animate-pulse"></div>
-                <span className="text-base text-base-content/70">
-                  Friend Request Sent · Waiting for response
-                </span>
-              </div>
+              {statusText && (
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 bg-warning rounded-full animate-pulse"></div>
+                  <span className="text-base text-base-content/70">
+                    {statusText}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -177,4 +181,4 @@ const AddFriendProfilePreview = ({ userData }) => {
   );
 };
 
-export default AddFriendProfilePreview;
+export default UserProfilePreview;

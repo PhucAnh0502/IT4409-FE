@@ -6,12 +6,17 @@ const AddFriendItem = ({
   avatarUrl, 
   message, // Message from friend request
   onCancelRequest,
-  onClick // Add onClick prop
+  onClick, // Add onClick prop
+  isSelected
 }) => {
   return (
     <div 
       onClick={onClick}
-      className="flex gap-3 p-2 hover:bg-base-200 rounded-lg transition-colors items-center cursor-pointer"
+      className={`flex gap-3 p-2 rounded-lg transition-all items-center cursor-pointer ${
+        isSelected 
+          ? 'bg-primary/10 border-l-4 border-primary shadow-sm' 
+          : 'hover:bg-base-200 border-l-4 border-transparent'
+      }`}
     >
       {/* Avatar */}
       <div className="w-[60px] h-[60px] flex-shrink-0">

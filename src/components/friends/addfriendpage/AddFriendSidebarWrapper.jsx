@@ -6,7 +6,7 @@ import AddFriendModal from './AddFriendModal';
 import { useFriendStore } from '../../../stores/useFriendStore';
 import { useUserStore } from '../../../stores/useUserStore';
 
-const AddFriendSidebarWrapper = ({ onBack, onUserSelect }) => {
+const AddFriendSidebarWrapper = ({ onBack, onUserSelect, selectedItemId }) => {
   const { sentRequests, isLoadingRequests, getSentRequests, deleteFriendRequest } = useFriendStore();
   const { getUserById } = useUserStore();
   const [enrichedRequests, setEnrichedRequests] = useState([]);
@@ -28,6 +28,18 @@ const AddFriendSidebarWrapper = ({ onBack, onUserSelect }) => {
     };
     
     fetchData();
+  }, [getSentRequests]);
+
+  // Auto-refresh when user returns to tab
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        getSentRequests();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [getSentRequests]);
 
   // Fetch user details for each receiver when sentRequests changes
@@ -132,6 +144,7 @@ const AddFriendSidebarWrapper = ({ onBack, onUserSelect }) => {
         ItemComponent={AddFriendItem}
         renderSubtitle={renderSubtitle}
         onItemClick={onUserSelect}
+        selectedItemId={selectedItemId}
         itemComponentProps={{
           onCancelRequest: handleCancelRequest
         }}
