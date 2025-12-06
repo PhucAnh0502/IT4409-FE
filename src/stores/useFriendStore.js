@@ -26,12 +26,13 @@ export const useFriendStore = create((set) => ({
     },
 
     // Send friend request
-    sendFriendRequest: async (userId) => {
+    sendFriendRequest: async (userId, message = "Hi, let's be friends!") => {
         try {
             const res = await authAxiosInstance.post(API.FRIEND.SEND_REQUEST, {
-                receiverId: userId
+                receiverId: userId,
+                message: message
             });
-            toast.success("Friend request sent successfully");
+            toast.success(res?.message || "Friend request sent successfully");
             return res;
         } catch (error) {
             toast.error(error?.message || "Error sending friend request");
@@ -54,7 +55,7 @@ export const useFriendStore = create((set) => ({
     deleteFriendRequest: async (requestId) => {
         try {
             const res = await authAxiosInstance.delete(API.FRIEND.DELETE_REQUEST(requestId));
-            toast.success("Friend request cancelled");
+            toast.success(res?.message || "Friend request cancelled");
             return res;
         } catch (error) {
             toast.error(error?.message || "Error deleting friend request");

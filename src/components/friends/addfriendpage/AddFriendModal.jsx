@@ -1,21 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search } from 'lucide-react';
 import { useUserStore } from '../../../stores/useUserStore.js';
+import { useFriendStore } from '../../../stores/useFriendStore.js';
 import { getUserIdFromToken } from '../../../lib/utils.js';
 
 const AddFriendModal = ({ isOpen, onClose }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [sentRequests, setSentRequests] = useState(new Set());
     const [suggestedUsers, setSuggestedUsers] = useState([]);
+    const [allUsers, setAllUsers] = useState([]); // Cache all users for search
     const [isLoading, setIsLoading] = useState(false);
+    const [hasSentRequests, setHasSentRequests] = useState(false); // Track if any request was sent
     const { getAllUsers } = useUserStore();
+    const { sendFriendRequest, getSentRequests } = useFriendStore();
 
     // Fetch suggested users when modal opens
     useEffect(() => {
         if (isOpen) {
             fetchSuggestedUsers();
+            setSearchQuery(''); // Reset search when modal opens
+            setHasSentRequests(false); // Reset flag when modal opens
         }
     }, [isOpen]);
+
+    // Fetch all users when search query changes (with debounce)
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handler = setTimeout(() => {
+            if (searchQuery.trim()) {
+                fetchAllUsersForSearch();
+            } else {
+                // If search is empty, show suggested users
+                fetchSuggestedUsers();
+            }
+        }, 300); // Debounce 300ms
+
+        return () => clearTimeout(handler);
+    }, [searchQuery, isOpen]);
 
     const fetchSuggestedUsers = async () => {
         setIsLoading(true);
@@ -49,16 +71,64 @@ const AddFriendModal = ({ isOpen, onClose }) => {
         }
     };
 
-    if (!isOpen) return null;
-
-    const handleAddFriend = (userId) => {
-        setSentRequests(prev => new Set(prev).add(userId));
-        // TODO: Call API to send friend request
+    const fetchAllUsersForSearch = async () => {
+        setIsLoading(true);
+        try {
+            // Fetch larger dataset for search (50 users)
+            const users = await getAllUsers(1, 50);
+            
+            // Get current user ID from token
+            const currentUserId = getUserIdFromToken();
+            
+            // Filter out current user
+            const filteredUsers = users.filter(user => user.id !== currentUserId);
+            
+            // Map to required format and cache
+            const allUsersMapped = filteredUsers.map(user => ({
+                id: user.id,
+                name: user.fullName,
+                avatarUrl: user.avatarUrl || 'https://via.placeholder.com/60',
+            }));
+            
+            setAllUsers(allUsersMapped);
+            
+            // Filter by search query
+            const searchResults = allUsersMapped.filter(user =>
+                user.name.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            
+            setSuggestedUsers(searchResults);
+        } catch (error) {
+            console.error('Failed to fetch users for search:', error);
+            setSuggestedUsers([]);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const filteredUsers = suggestedUsers.filter(user =>
-        user.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    if (!isOpen) return null;
+
+    const handleAddFriend = async (userId) => {
+        try {
+            // Call API to send friend request
+            await sendFriendRequest(userId);
+            // Update UI state on success
+            setSentRequests(prev => new Set(prev).add(userId));
+            // Mark that at least one request was sent
+            setHasSentRequests(true);
+        } catch (error) {
+            console.error('Failed to send friend request:', error);
+        }
+    };
+
+    // Handle modal close - refresh sidebar if any requests were sent
+    const handleClose = async () => {
+        if (hasSentRequests) {
+            // Refresh sidebar sent requests list
+            await getSentRequests();
+        }
+        onClose();
+    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm md:bg-black/40">
@@ -69,7 +139,7 @@ const AddFriendModal = ({ isOpen, onClose }) => {
                 <div className="h-[60px] flex items-center justify-center border-b border-[#dbdbdb] relative flex-shrink-0">
                     <h2 className="text-[20px] font-bold text-[#050505]">Add Friends</h2>
                     <button
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="absolute right-4 w-9 h-9 bg-[#E4E6EB] hover:bg-[#D8DADF] rounded-full flex items-center justify-center transition-colors text-[#606770]"
                     >
                         <X size={20} />
@@ -90,12 +160,15 @@ const AddFriendModal = ({ isOpen, onClose }) => {
                     </div>
                 </div>
 
-                {/* Content */}
-                <div className="p-4 overflow-y-auto flex-1 md:flex-initial md:min-h-[400px]">
-                    <h3 className="font-semibold text-[17px] text-[#050505] mb-4">
-                        Suggested for you ({filteredUsers.length})
+                {/* Title - Sticky */}
+                <div className="px-4 pt-4 pb-2 border-b border-[#E4E6EB]">
+                    <h3 className="font-semibold text-[17px] text-[#050505]">
+                        {searchQuery ? `Search Results (${suggestedUsers.length})` : `Suggested for you (${suggestedUsers.length})`}
                     </h3>
+                </div>
 
+                {/* Content - Scrollable */}
+                <div className="p-4 overflow-y-auto flex-1 md:flex-initial md:min-h-[400px]">
                     {isLoading ? (
                         <div className="flex items-center justify-center py-12">
                             <div className="loading loading-spinner loading-lg text-primary"></div>
@@ -103,7 +176,7 @@ const AddFriendModal = ({ isOpen, onClose }) => {
                     ) : (
                         <>
                             <div className="flex flex-col space-y-2">
-                                {filteredUsers.map((user) => (
+                                {suggestedUsers.map((user) => (
                                     <div key={user.id} className="flex items-center justify-between p-2 hover:bg-[#F2F2F2] rounded-lg transition-colors group">
                                         {/* User Info */}
                                         <div className="flex items-center gap-3">
@@ -134,7 +207,7 @@ const AddFriendModal = ({ isOpen, onClose }) => {
                                 ))}
                             </div>
 
-                            {filteredUsers.length === 0 && !isLoading && (
+                            {suggestedUsers.length === 0 && !isLoading && (
                                 <div className="text-center py-12">
                                     <p className="text-[#65676B] text-[15px]">No results found</p>
                                 </div>

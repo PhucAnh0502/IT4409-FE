@@ -27,13 +27,15 @@ const Navbar = () => {
           <div className="flex items-center gap-2">
             
             {/* Friends Button */}
-            <Link
-              to={"/friends"}
-              className={`btn btn-sm gap-2 transition-colors`}
-            >
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Friends</span>
-            </Link>
+            {isAuthenticated && (
+              <Link
+                to={"/friends"}
+                className={`btn btn-sm gap-2 transition-colors`}
+              >
+                <Users className="w-4 h-4" />
+                <span className="hidden sm:inline">Friends</span>
+              </Link>
+            )}
 
             <Link
               to={"/profile"}
