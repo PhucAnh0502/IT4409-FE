@@ -9,12 +9,36 @@ export const useConversationStore = create((set, get) => ({
     selectedConversation: null,
     isGettingConversations: false,
     isCreatingConversation: false,
+    isCreatingGroup: false,
+    isUploading: false,
     
     page: 1,
     hasMore: true, 
     isMessagesLoading: false, 
-    isLoadingMore: false,    
+    isLoadingMore: false,
+    
+    // Upload file API
+    uploadFile: async (file) => {
+        set({ isUploading: true });
+        try {
+            const formData = new FormData();
+            formData.append("File", file);
 
+            const response = await authAxiosInstance.post(API.MEDIA.UPLOAD_MEDIA, formData,{
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            return response.url;
+        } catch (error) {
+            toast.error(error?.message || "File upload failed");
+            throw error;
+        } finally {
+            set({ isUploading: false });
+        }
+    },
+
+    // Conversation APIs
     getConversations: async () => {
         set({ isGettingConversations: true });
         try {
@@ -43,6 +67,7 @@ export const useConversationStore = create((set, get) => ({
         }
     },
 
+    // Message APIs
     getMessages: async (conversationId) => {
         if (!conversationId) {
             set({ messages: [], isMessagesLoading: false });
@@ -111,6 +136,7 @@ export const useConversationStore = create((set, get) => ({
                 const conv = { ...conversations[idx] };
                 conv.lastMessageContent = message.content;
                 conv.lastMessageTime = message.createdAt;
+                conv.lassMessageSenderAvatarUrl = message.senderAvatarUrl
                 conversations = [conv, ...conversations.slice(0, idx), ...conversations.slice(idx + 1)];
             }
 
@@ -132,10 +158,108 @@ export const useConversationStore = create((set, get) => ({
     setSelectedConversation: (conversationId) => {
         set({ selectedConversation: conversationId });
         if (conversationId) {
-            // load messages for this conversation
-            // call getMessages but do not await
             const fn = get().getMessages;
             if (typeof fn === 'function') fn(conversationId).catch(() => {});
         }
-    }
+    },
+
+    // Group management APIs
+    createGroup: async (data) => {
+        set({ isCreatingGroup: true });
+        try {
+            const response = await authAxiosInstance.post(API.CONVERSATION.CREATE_GROUP, data);
+            
+            if (response) {
+                set((state) => ({
+                    conversations: [response, ...state.conversations]
+                }));
+                toast.success("Group created successfully");
+            }
+            return response;
+        } catch (error) {
+            console.error("Error creating group:", error);
+            toast.error(error?.message || "Error creating group");
+            throw error;
+        } finally {
+            set({ isCreatingGroup: false });
+        }
+    },
+
+    addMemberToGroup: async (data) => {
+        try {
+            const conversationId = get().selectedConversation;
+            const response = await authAxiosInstance.post(API.CONVERSATION.ADD_MEMBER_TO_GROUP(conversationId), data);
+            
+            set((state) => ({
+                conversations: state.conversations.map((conv) => 
+                    conv.id === conversationId
+                        ? {
+                            ...conv,
+                            participants: response.participants || conv.participants,
+                        }
+                        : conv
+                ),
+            }));
+            
+            toast.success(response.message || "Member added to group successfully");
+        } catch (error) {
+            toast.error(error?.message || "Error adding member to group");
+        }
+    },
+
+    kickMember: async (data) => {
+        try {
+            const conversationId = get().selectedConversation;
+            const response = await authAxiosInstance.post(API.CONVERSATION.KICK_MEMBER(conversationId), data);
+            
+            set((state) => ({
+                conversations: state.conversations.map((conv) => 
+                    conv.id === conversationId
+                        ? {
+                            ...conv,
+                            participants: response.participants || conv.participants,
+                        }
+                        : conv
+                ),
+            }));
+            
+            toast.success(response.message || "Member removed from group successfully");
+        } catch (error) {
+            toast.error(error?.message || "Error removing member from group");
+        }
+    },
+
+    leaveGroup: async () => {
+        try {
+            const conversationId = get().selectedConversation;
+            const response = await authAxiosInstance.delete(API.CONVERSATION.LEAVE_GROUP(conversationId));
+            
+            toast.success(response.message || "Left group successfully");
+        } catch (error) {
+            toast.error(error?.message || "Error leaving group");
+        }
+    },
+
+    updateGroupInfo: async (data) => {
+        try {
+            const conversationId = get().selectedConversation;
+            const response = await authAxiosInstance.put(API.CONVERSATION.UPDATE_GROUP_INFO(conversationId), data);
+            
+            set((state) => ({
+                conversations: state.conversations.map((conv) => 
+                    conv.id === conversationId || conv._id === conversationId
+                        ? {
+                            ...conv,
+                            name: data.newGroupName || conv.name,
+                            avatarUrl: response.avatarUrl || conv.avatarUrl,
+                        }
+                        : conv
+                ),
+            }));
+            
+            toast.success(response.message || "Group info updated successfully");
+        } catch (error) {
+            toast.error(error?.message || "Error updating group info");
+        }
+    },
 }));

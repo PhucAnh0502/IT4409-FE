@@ -13,9 +13,17 @@ export const API = {
         UPDATE_USER: (userId) => `/User/${userId}`,
         DELETE_USER: (userId) => `/User/${userId}`,
     },
+    MEDIA: {
+        UPLOAD_MEDIA: '/Media/upload',
+    },
     CONVERSATION: {
         ALL_CONVERSATIONS: '/Conversation',
         CREATE_CONVERSATION: '/Conversation',
+        CREATE_GROUP: '/Conversation/group',
+        ADD_MEMBER_TO_GROUP: (conversationId) => `/Conversation/${conversationId}/members`,
+        LEAVE_GROUP: (conversationId) => `/Conversation/${conversationId}/leave`,
+        KICK_MEMBER: (conversationId) => `/Conversation/${conversationId}/kick`,
+        UPDATE_GROUP_INFO: (conversationId) => `/Conversation/${conversationId}/name`,
     },
     MESSAGE: {
         ALL_MESSAGES: (conversationId) => `/Messages/${conversationId}`,

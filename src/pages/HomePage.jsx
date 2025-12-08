@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Sidebar from "../components/chat/Sidebar.jsx";
 import NoChatSelected from "../components/chat/NoChatSelected.jsx";
 import ChatContainer from "../components/chat/ChatContainer.jsx";
+import ChatRightSidebar from "../components/chat/ChatRightSidebar.jsx"; // Import Sidebar phải
 import { useSignalRConnection } from "../contexts/SignalRContext";
 import { useConversationStore } from "../stores/useConversationStore";
 import { Menu } from "lucide-react";
@@ -9,9 +10,17 @@ import { Menu } from "lucide-react";
 const HomePage = () => {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
 
   const connection = useSignalRConnection();
   const setStoreSelectedConversation = useConversationStore((s) => s.setSelectedConversation);
+  const { conversations } = useConversationStore(); 
+
+  const currentConversationData = useMemo(() => {
+    if (!selectedConversation || !conversations) return null;
+    return conversations.find(c => c.id === selectedConversation || c._id === selectedConversation);
+  }, [selectedConversation, conversations]);
 
   useEffect(() => {
     if (!connection) return;
@@ -20,22 +29,19 @@ const HomePage = () => {
       try {
         if (!convId) return;
         await connection.invoke("JoinConversation", convId.toString());
-      } catch {
-        // ignore
-      }
+      } catch { /* ignore */ }
     };
 
     const leave = async (convId) => {
       try {
         if (!convId) return;
         await connection.invoke("LeaveConversation", convId.toString());
-      } catch {
-        // ignore
-      }
+      } catch { /* ignore */ }
     };
 
     if (selectedConversation) {
       join(selectedConversation);
+      setIsRightSidebarOpen(false);
     }
 
     return () => {
@@ -51,7 +57,8 @@ const HomePage = () => {
     <div className="h-screen bg-base-200">
       <div className="bg-base-100 w-full h-full">
         <div className="flex h-full overflow-hidden pt-16 pb-2 pl-2 pr-2">
-          {/* Mobile menu button */}
+          
+          {/* --- LEFT SIDEBAR (Mobile Toggle Button) --- */}
           <div className="lg:hidden mr-2">
             <button
               className="btn btn-ghost btn-square"
@@ -62,8 +69,8 @@ const HomePage = () => {
             </button>
           </div>
 
-          {/* Sidebar for large screens */}
-          <div className="hidden lg:block">
+          {/* --- LEFT SIDEBAR (Desktop) --- */}
+          <div className="hidden lg:block h-full">
             <Sidebar
               selectedConversation={selectedConversation}
               setSelectedConversation={setSelectedConversation}
@@ -71,7 +78,7 @@ const HomePage = () => {
             />
           </div>
 
-          {/* Mobile overlay sidebar */}
+          {/* --- LEFT SIDEBAR (Mobile Overlay) --- */}
           {isSidebarOpen && (
             <div className="fixed inset-0 z-40 lg:hidden">
               <div className="absolute inset-0 bg-black/40" onClick={() => setIsSidebarOpen(false)} />
@@ -88,14 +95,29 @@ const HomePage = () => {
             </div>
           )}
 
-          {/* Main chat area */}
+          {/* --- MAIN CONTENT AREA --- */}
           {!selectedConversation ? (
             <NoChatSelected />
           ) : (
-            <ChatContainer
-              conversationId={selectedConversation}
-              onClose={() => setSelectedConversation(null)}
-            />
+            <div className="flex-1 flex overflow-hidden relative border-l border-base-300"> 
+              
+              {/* KHUNG CHAT CHÍNH */}
+              <div className="flex-1 min-w-0 flex flex-col h-full">
+                <ChatContainer
+                  conversationId={selectedConversation}
+                  onClose={() => setSelectedConversation(null)}
+                  onToggleRightSidebar={() => setIsRightSidebarOpen(!isRightSidebarOpen)} 
+                />
+              </div>
+
+              {/* SIDEBAR PHẢI (Thông tin nhóm) */}
+              {isRightSidebarOpen && (
+                <ChatRightSidebar 
+                  conversation={currentConversationData}
+                  onClose={() => setIsRightSidebarOpen(false)}
+                />
+              )}
+            </div>
           )}
         </div>
       </div>

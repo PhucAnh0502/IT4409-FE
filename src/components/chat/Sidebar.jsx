@@ -8,7 +8,16 @@ import SidebarSkeleton from "../skeletons/SidebarSkeleton";
 import FriendModal from "./FriendModal";
 
 const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) => {
-  const { conversations, getConversations, isGettingConversations, createConversation, isCreatingConversation } = useConversationStore();
+  const { 
+    conversations, 
+    getConversations, 
+    isGettingConversations, 
+    createConversation, 
+    isCreatingConversation, 
+    isCreatingGroup, 
+    createGroup      
+  } = useConversationStore();
+
   const { friends, getFriendsList, isLoadingFriends } = useFriendStore();
   const [isFriendModalOpen, setIsFriendModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -40,21 +49,12 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
     }
   };
 
-
   const handleCreateConversation = async (friend) => {
     try {
       const friendId = friend.friendUserId;
-      try {
-        await getConversations();
-      } catch {
-        // Ignore errors here
-      }
-
       const existing = (conversations || [])?.find((conv) => {
         if (!conv) return false;
-
         if (conv.receiverId === friendId || conv.otherUserId === friendId || conv.friendUserId === friendId) return true;
-
         const arrChecks = [conv.participants, conv.participantIds, conv.members, conv.users];
         for (const arr of arrChecks) {
           if (!Array.isArray(arr)) continue;
@@ -64,7 +64,6 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
             return p.id === friendId || p.userId === friendId || p.user?.id === friendId || p._id === friendId;
           })) return true;
         }
-
         return false;
       });
 
@@ -72,33 +71,50 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
         const existingId = existing.conversationId || existing.id || existing._id;
         if (existingId) {
           setSelectedConversation(existingId);
+          if (typeof onSelect === 'function') onSelect(existingId);
         }
         setIsFriendModalOpen(false);
         toast.success("Opened existing conversation");
-        return existingId || null;
+        return existingId;
       }
 
-      if (isCreatingConversation) {
-        toast.loading('Creating conversation...');
-        return;
-      }
+      if (isCreatingConversation) return;
 
       const payload = { receiverId: friendId };
       const newConv = await createConversation(payload);
 
-      const newConvId = newConv?.conversationId;
+      const newConvId = newConv?.conversationId || newConv?.id;
       if (newConvId) {
         setSelectedConversation(newConvId);
+        if (typeof onSelect === 'function') onSelect(newConvId);
       }
 
       setIsFriendModalOpen(false);
       toast.success("Conversation created");
-      return newConvId || null;
+      return newConvId;
     } catch (error) {
       toast.error(error?.message || "Failed to create conversation");
       return null;
     }
   };
+
+  const handleCreateGroup = async (groupData) => {
+    if (isCreatingGroup) return;
+    try {
+      const newGroup = await createGroup(groupData);
+      
+      setIsFriendModalOpen(false); 
+
+      const newGroupId = newGroup?.conversationId || newGroup?.id;
+      if (newGroupId) {
+        setSelectedConversation(newGroupId);
+        if (typeof onSelect === 'function') onSelect(newGroupId);
+      }
+      
+    } catch (error) {
+      console.error("Failed to create group in Sidebar", error);
+    }
+  }
 
   return (
     <aside className="h-full w-full lg:w-80 border-r border-base-300 flex flex-col bg-base-100">
@@ -132,16 +148,17 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
       <div className="overflow-y-auto w-full flex-1">
         {filteredConversations?.map((conversation) => (
           <button
-            key={conversation.id}
+            key={conversation.id || conversation.conversationId}
             className={`
               w-full p-3 flex items-center gap-3
               transition-colors hover:bg-base-200
               ${!conversation.isRead ? "bg-base-200/50" : ""} 
-              ${selectedConversation == conversation.id ? "bg-base-300" : ""}
+              ${selectedConversation == (conversation.id || conversation.conversationId) ? "bg-base-300" : ""}
             `}
             onClick={() => {
-              setSelectedConversation(conversation.id);
-              if (typeof onSelect === 'function') onSelect(conversation.id);
+              const id = conversation.id || conversation.conversationId;
+              setSelectedConversation(id);
+              if (typeof onSelect === 'function') onSelect(id);
             }}
           >
             <div className="avatar relative">
@@ -161,7 +178,7 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
                     !conversation.isRead ? "font-bold" : "font-medium text-base-content"
                   }`}
                 >
-                  {conversation.name}
+                  {conversation.name || conversation.conversationName}
                 </span>
                 <span className="text-xs text-base-content/50 ml-2 whitespace-nowrap">
                   {formatMessageTimestamp(conversation.lastMessageTime)}
@@ -194,16 +211,15 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
         )}
       </div>
 
-      {/* Friend selection modal */}
       <FriendModal
         open={isFriendModalOpen}
         onClose={() => setIsFriendModalOpen(false)}
         friends={friends}
         isLoading={isLoadingFriends}
         onSelectFriend={async (friend) => {
-          const convId = await handleCreateConversation(friend);
-          if (convId && typeof onSelect === 'function') onSelect(convId);
+          await handleCreateConversation(friend);
         }}
+        onCreateGroup={handleCreateGroup}
       />
     </aside>
   );

@@ -37,7 +37,7 @@ function App() {
         message.createdAt = new Date().toISOString();
       }
       
-      if (conversationId) {
+      if (conversationId && message && (!message.isSystemMessage || message.type !== 99)) {
         appendMessage(conversationId.toString(), message);
       } else {
         appendMessage(null, message);
