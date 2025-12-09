@@ -5,7 +5,7 @@ import FriendCard from "./FriendCard";
 const FriendsPreviewSection = ({ friends, onSeeAllClick }) => {
   return (
     <div className="flex">
-      <div className="bg-base-100 rounded-xl shadow-md p-6 w-full flex flex-col">
+      <div className="glass rounded-xl shadow-xl p-6 w-full flex flex-col backdrop-blur-xl bg-base-100/70">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold flex items-center gap-2">
             <Users className="w-6 h-6 text-primary" />

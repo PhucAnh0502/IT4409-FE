@@ -4,7 +4,7 @@ import FriendCard from "./FriendCard";
 
 const AllFriendsSection = ({ friends }) => {
   return (
-    <div className="bg-base-100 rounded-xl shadow-md p-6">
+    <div className="glass rounded-xl shadow-xl p-6 backdrop-blur-xl bg-base-100/70">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold flex items-center gap-2">
           <Users className="w-6 h-6 text-primary" />
