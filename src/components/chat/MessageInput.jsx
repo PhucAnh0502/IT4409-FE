@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Paperclip, Send, X } from "lucide-react";
+import { Paperclip, Send, X, FileText } from "lucide-react";
 import { useConversationStore } from "../../stores/useConversationStore";
 import { getUserIdFromToken } from "../../lib/utils";
 import { useSignalRConnection } from "../../contexts/SignalRContext";
