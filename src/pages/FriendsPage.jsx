@@ -1,12 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import RequestsSidebarWrapper from '../components/friends/requestspage/RequestsSidebarWrapper';
 import MainContent from '../components/friends/MainContent';
 import AddFriendPage from '../components/friends/addfriendpage/AddFriendPage';
 import UserProfilePreview from '../components/friends/UserProfilePreview';
 
 const FriendsPage = () => {
+  const location = useLocation();
   const [currentPage, setCurrentPage] = useState('requests');
   const [selectedUser, setSelectedUser] = useState(null);
+  
+  // Check if there's a selectedUser from navigation state
+  useEffect(() => {
+    if (location.state?.selectedUser) {
+      setSelectedUser(location.state.selectedUser);
+    }
+  }, [location.state]);
 
   const handleNavigate = (page) => {
     if (page === 'requests' || page === 'add_friend') {

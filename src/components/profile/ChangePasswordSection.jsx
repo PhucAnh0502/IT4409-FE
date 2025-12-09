@@ -121,7 +121,7 @@ const ChangePasswordSection = ({ userId }) => {
 
   return (
     <div className="lg:col-span-2 flex">
-      <div className="bg-base-100 rounded-xl shadow-md p-6 w-full">
+      <div className="glass rounded-xl shadow-xl p-6 w-full backdrop-blur-xl bg-base-100/70">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
           <KeyRound className="w-6 h-6 text-primary" />
           Change Password
@@ -252,7 +252,7 @@ const ChangePasswordSection = ({ userId }) => {
         </form>
 
         {/* Helper Text */}
-        <div className="mt-6 p-4 bg-base-200 rounded-lg">
+        <div className="mt-6 p-4 glass rounded-lg backdrop-blur-lg bg-base-200/60 border border-base-300/30">
           <p className="text-sm text-base-content/70">
             <strong>Password Requirements:</strong>
           </p>

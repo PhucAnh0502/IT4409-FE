@@ -10,16 +10,71 @@ export const useFriendStore = create((set) => ({
     sentRequests: [],
     isLoadingRequests: false,
 
-    // Get all friends
+    // Get all friends with full user details
     getFriendsList: async () => {
         set({ isLoadingFriends: true });
         try {
-            const res = await authAxiosInstance.get(API.FRIEND.GET_ALL_FRIENDS);
-            set({ friends: res });
-            return res;
+            // Step 1: Get friendships from /Friend API
+            const friendships = await authAxiosInstance.get(API.FRIEND.GET_ALL_FRIENDS);
+            
+            if (!Array.isArray(friendships) || friendships.length === 0) {
+                set({ friends: [] });
+                return [];
+            }
+
+            // Step 2: Fetch full user details for each friend
+            const friendsWithDetails = await Promise.all(
+                friendships.map(async (friendship) => {
+                    try {
+                        // Get full user data from /User/{id} API
+                        const userData = await authAxiosInstance.get(
+                            API.USER.GET_USER(friendship.friendUserId)
+                        );
+                        
+                        // Combine friendship data with user data
+                        return {
+                            // Friend identification
+                            friendshipId: friendship.friendshipId,
+                            friendUserId: friendship.friendUserId,
+                            
+                            // Full user details from /User API
+                            friendUserName: userData.userName || friendship.friendUserName,
+                            friendFullName: userData.fullName || userData.userName,
+                            friendAvatarUrl: userData.avatarUrl || friendship.friendAvatarUrl,
+                            friendEmail: userData.email,
+                            friendBio: userData.bio,
+                            friendPhone: userData.phone,
+                            
+                            // Friendship metadata
+                            friendedBy: friendship.friendedBy || 0,
+                            createdAt: friendship.createdAt,
+                        };
+                    } catch (error) {
+                        console.warn(`Failed to fetch details for friend ${friendship.friendUserId}:`, error);
+                        // Fallback to basic data if user API fails
+                        return {
+                            friendshipId: friendship.friendshipId,
+                            friendUserId: friendship.friendUserId,
+                            friendUserName: friendship.friendUserName,
+                            friendFullName: friendship.friendUserName,
+                            friendAvatarUrl: friendship.friendAvatarUrl,
+                            friendEmail: null,
+                            friendBio: null,
+                            friendPhone: null,
+                            friendedBy: friendship.friendedBy || 0,
+                            createdAt: friendship.createdAt,
+                        };
+                    }
+                })
+            );
+
+            set({ friends: friendsWithDetails });
+            return friendsWithDetails;
         } catch (error) {
+            console.error("Error fetching friends list:", error);
             toast.error(error?.message || "Error fetching friends list");
-            throw error;
+            set({ friends: [] });
+            return [];
         } finally {
             set({ isLoadingFriends: false });
         }

@@ -13,7 +13,7 @@ const ProfileInformationSection = ({
 }) => {
   return (
     <div className="lg:col-span-2 flex">
-      <div className="bg-base-100 rounded-xl shadow-md p-6 w-full">
+      <div className="glass rounded-xl shadow-xl p-6 w-full backdrop-blur-xl bg-base-100/70">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
           <FileText className="w-6 h-6 text-primary" />
           Profile Information
