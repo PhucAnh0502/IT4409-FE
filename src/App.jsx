@@ -16,13 +16,15 @@ import { SignalRProvider } from "./contexts/SignalRContext"
 import { useConversationStore } from "./stores/useConversationStore"
 import { useEffect } from "react"
 import FriendsPage from "./pages/FriendsPage"
+import { getUserIdFromToken } from "./lib/utils"
 
 function App() {
   const {theme} = useThemeStore();
   const hubUrl = import.meta.env.VITE_SIGNALR_HUB;
   const connection = useSignalR(hubUrl);
-  const {appendMessage} = useConversationStore();
+  const {appendMessage, updateConversationName, removeMemberSocket, leaveGroupSocket} = useConversationStore();
 
+  const authUserId = getUserIdFromToken();
 
   useEffect(() => {
     if (!connection) return;
@@ -32,6 +34,23 @@ function App() {
       console.debug("SignalR ReceiveMessage payload:", payload);
       const conversationId = payload?.conversationId;
       const message = payload;
+
+      if(conversationId && payload.newGroupName){
+        updateConversationName(conversationId.toString(), payload.newGroupName);
+      }
+
+      if(conversationId && payload.kickedMemberId){
+        removeMemberSocket(conversationId.toString(), payload.kickedMemberId);
+
+        if(authUserId == payload.kickedMemberId){
+          connection.invoke("LeaveConversation", conversationId.toString())
+                .catch(err => console.error(err));
+        }
+      }
+
+      if(conversationId && payload.leftUserId && payload.newAdminId){
+        leaveGroupSocket(conversationId, payload.leftUserId, payload.newAdminId)
+      }
       
       if (!message.createdAt) {
         message.createdAt = new Date().toISOString();

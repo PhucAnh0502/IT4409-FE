@@ -14,14 +14,20 @@ const FriendModal = ({
   const [groupName, setGroupName] = useState("");
   const [selectedFriends, setSelectedFriends] = useState([]);
 
+  const [isVisible, setIsVisible] = useState(false);
+
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      setIsVisible(true);
       setTimeout(() => {
         setQuery("");
         setGroupName("");
         setSelectedFriends([]);
         setActiveTab("conversation");
-      }, 200);
+      }, 0);
+    } else {
+      const timer = setTimeout(() => setIsVisible(false), 300);
+      return () => clearTimeout(timer);
     }
   }, [open]);
 
@@ -54,17 +60,32 @@ const FriendModal = ({
     }
     onClose();
   };
-
-  if (!open) return null;
+  if (!open && !isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
+    <div 
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0 transition-opacity duration-300 ${
+        open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+      }`}
+    >
+      {/* --- BACKDROP --- */}
       <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-300" 
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ease-in-out"
         onClick={onClose} 
       />
 
-      <div className="relative bg-base-100 rounded-xl shadow-2xl w-full max-w-md mx-4 z-10 flex flex-col max-h-[90vh] animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-[10%] duration-300 ease-out">
+      {/* --- MODAL CONTENT --- */}
+      <div 
+        className={`
+          relative bg-base-100 rounded-xl shadow-2xl w-full max-w-md mx-4 z-10 flex flex-col max-h-[90vh]
+          transform transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
+          ${open 
+            ? "scale-100 translate-y-0 opacity-100" 
+            : "scale-95 translate-y-4 opacity-0"
+          }
+        `}
+      >
+        {/* HEADER */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-base-200">
           <h3 className="text-lg font-bold text-base-content">
             {activeTab === "conversation" ? "New Message" : "Create Group"}
@@ -77,6 +98,7 @@ const FriendModal = ({
           </button>
         </div>
 
+        {/* TABS */}
         <div className="flex border-b border-base-200">
           <button
             className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-300 relative ${
@@ -88,9 +110,11 @@ const FriendModal = ({
           >
             <MessageSquare size={18} />
             Conversation
-            {activeTab === "conversation" && (
-                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary animate-in fade-in zoom-in-0 duration-200" />
-            )}
+            <div 
+                className={`absolute bottom-0 left-0 w-full h-0.5 bg-primary transition-transform duration-300 ${
+                    activeTab === "conversation" ? "scale-x-100" : "scale-x-0"
+                }`} 
+            />
           </button>
           
           <button
@@ -103,27 +127,30 @@ const FriendModal = ({
           >
             <Users size={18} />
             Create Group
-            {activeTab === "group" && (
-                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary animate-in fade-in zoom-in-0 duration-200" />
-            )}
+            <div 
+                className={`absolute bottom-0 left-0 w-full h-0.5 bg-primary transition-transform duration-300 ${
+                    activeTab === "group" ? "scale-x-100" : "scale-x-0"
+                }`} 
+            />
           </button>
         </div>
 
+        {/* CONTENT BODY */}
         <div className="p-4 flex-1 overflow-hidden flex flex-col bg-base-100/50">
-          {activeTab === "group" && (
-            <div className="mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
-              <label className="label pt-0">
-                <span className="label-text font-medium text-base-content/80">Group Name</span>
-              </label>
-              <input
-                value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
-                placeholder="Enter group name..."
-                className="input input-bordered w-full focus:outline-none border-transparent focus:bg-base-100 focus:ring-2 focus:ring-primary/50 transition-all duration-200"
-                autoFocus
-              />
-            </div>
-          )}
+          {/* Group Name Input  */}
+          <div className={`transition-all duration-300 overflow-hidden ${
+              activeTab === "group" ? "max-h-24 opacity-100 mb-4" : "max-h-0 opacity-0 mb-0"
+          }`}>
+            <label className="label pt-0">
+              <span className="label-text font-medium text-base-content/80">Group Name</span>
+            </label>
+            <input
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              placeholder="Enter group name..."
+              className="input input-bordered w-full focus:outline-none border-transparent focus:bg-base-100 focus:ring-2 focus:ring-primary/50 transition-all duration-200"
+            />
+          </div>
 
           <div className="mb-3 relative">
             <input
@@ -186,12 +213,10 @@ const FriendModal = ({
                     </div>
 
                     {activeTab === "group" && (
-                      <div className={`transition-all duration-200 ${isSelected ? "text-primary scale-110" : "text-base-content/20 scale-100 group-hover:text-base-content/40"}`}>
-                        {isSelected ? (
-                          <CheckCircle size={22} />
-                        ) : (
-                          <Circle size={22} />
-                        )}
+                      <div className={`transition-all duration-300 transform ${
+                          isSelected ? "text-primary scale-100 opacity-100" : "text-base-content/20 scale-50 opacity-100 group-hover:text-base-content/40"
+                      }`}>
+                        {isSelected ? <CheckCircle size={22} /> : <Circle size={22} />}
                       </div>
                     )}
                   </button>
@@ -200,22 +225,25 @@ const FriendModal = ({
           </div>
         </div>
 
-        {activeTab === "group" && (
-          <div className="p-4 border-t border-base-200 bg-base-50/50 rounded-b-xl animate-in slide-in-from-bottom-2 duration-300">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-base-content/70">
-                Selected: <span className="text-primary font-bold">{selectedFriends.length}</span>
-              </span>
+        {/* FOOTER  */}
+        <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+            activeTab === "group" ? "max-h-32 opacity-100" : "max-h-0 opacity-0"
+        }`}>
+            <div className="p-4 border-t border-base-200 bg-base-50/50 rounded-b-xl">
+                <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-base-content/70">
+                    Selected: <span className="text-primary font-bold">{selectedFriends.length}</span>
+                </span>
+                </div>
+                <button
+                className="btn btn-primary w-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300 transform active:scale-95"
+                disabled={!groupName.trim() || selectedFriends.length === 0}
+                onClick={handleCreateGroupSubmit}
+                >
+                Create Group ({selectedFriends.length})
+                </button>
             </div>
-            <button
-              className="btn btn-primary w-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300"
-              disabled={!groupName.trim() || selectedFriends.length === 0}
-              onClick={handleCreateGroupSubmit}
-            >
-              Create Group ({selectedFriends.length})
-            </button>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

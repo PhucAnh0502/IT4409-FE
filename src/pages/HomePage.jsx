@@ -110,13 +110,22 @@ const HomePage = () => {
                 />
               </div>
 
-              {/* SIDEBAR PHẢI (Thông tin nhóm) */}
-              {isRightSidebarOpen && (
-                <ChatRightSidebar 
-                  conversation={currentConversationData}
-                  onClose={() => setIsRightSidebarOpen(false)}
-                />
-              )}
+              {/* --- SIDEBAR PHẢI  --- */}
+              <div 
+                className={`
+                  transition-all duration-300 ease-in-out transform
+                  border-l border-base-300 overflow-hidden
+                  ${isRightSidebarOpen ? "w-80 translate-x-0 opacity-100" : "w-0 translate-x-full opacity-0"}
+                `}
+              >
+                <div className="w-80 h-full">
+                  <ChatRightSidebar 
+                    conversation={currentConversationData}
+                    onClose={() => setIsRightSidebarOpen(false)}
+                    connection
+                  />
+                </div>
+              </div>
             </div>
           )}
         </div>

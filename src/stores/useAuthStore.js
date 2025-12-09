@@ -39,7 +39,7 @@ export const useAuthStore = create((set) => ({
             set({ 
                 authUser: res,
                 accessToken: token || getToken(),
-             });
+            });
             toast.success("Logged in successfully");
             return res;
         } catch (error) {

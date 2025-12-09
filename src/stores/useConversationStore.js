@@ -262,4 +262,45 @@ export const useConversationStore = create((set, get) => ({
             toast.error(error?.message || "Error updating group info");
         }
     },
+
+    updateConversationName: (conversationId, newName) => {
+        set((state) => ({
+            conversations: state.conversations.map((c) => {
+                (c.id === conversationId) ? { ...c, name: newName } : c
+            })
+        }))
+    },
+
+    removeMemberSocket: (conversationId, kickedMemberId) => {
+        set((state) => {
+            const updatedConversations = state.conversations.map((c) => {
+                if (c.id === conversationId) {
+                    return {
+                        ...c,
+                        participants: c.participants.filter(p => p.id !== kickedMemberId)
+                    };
+                }
+                return c;
+            });
+
+            return { conversations: updatedConversations };
+        });
+    },
+
+    leaveGroupSocket:(conversationId, leftMemberId, newAdminId) => {
+        set((state) => {
+            const updatedConversations = state.conversations.map((c) => {
+                if (c.id === conversationId) {
+                    return {
+                        ...c,
+                        participants: c.participants.filter(p => p.id !== leftMemberId),
+                        createdBy: newAdminId,
+                    };
+                }
+                return c;
+            });
+
+            return { conversations: updatedConversations };
+        });
+    } 
 }));

@@ -9,7 +9,8 @@ const ChatRightSidebar = ({ conversation, onClose }) => {
     leaveGroup, 
     kickMember, 
     addMemberToGroup, 
-    updateGroupInfo 
+    updateGroupInfo,
+    connection 
   } = useConversationStore(); 
   
   const currentUserId = getUserIdFromToken();
@@ -48,6 +49,11 @@ const ChatRightSidebar = ({ conversation, onClose }) => {
     if (!confirm("Are you sure you want to leave this group?")) return;
     try {
       await leaveGroup(); 
+      if (connection) {
+          try {
+            await connection.invoke("LeaveConversation", conversation.id.toString());
+          } catch(e) { console.error(e); }
+      }
       onClose(); 
     } catch (error) {
       console.error("Error leaving group:", error);
