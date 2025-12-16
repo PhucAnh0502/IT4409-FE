@@ -23,7 +23,9 @@ export const API = {
         ADD_MEMBER_TO_GROUP: (conversationId) => `/Conversation/${conversationId}/members`,
         LEAVE_GROUP: (conversationId) => `/Conversation/${conversationId}/leave`,
         KICK_MEMBER: (conversationId) => `/Conversation/${conversationId}/kick`,
-        UPDATE_GROUP_INFO: (conversationId) => `/Conversation/${conversationId}/name`,
+        UPDATE_GROUP_INFO: (conversationId) => `/Conversation/${conversationId}/group/name`,
+        UPDATE_GROUP_AVATAR: (conversationId) => `/Conversation/${conversationId}/group/avatar`,
+        MARK_AS_READ: (conversationId) => `/Conversation/${conversationId}/read`,
     },
     MESSAGE: {
         ALL_MESSAGES: (conversationId) => `/Messages/${conversationId}`,

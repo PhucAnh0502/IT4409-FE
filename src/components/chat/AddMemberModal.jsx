@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { X, Search, Check, UserX } from "lucide-react";
 import { useFriendStore } from "../../stores/useFriendStore";
 
@@ -10,6 +11,7 @@ const AddMemberModal = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUserIds, setSelectedUserIds] = useState([]);
+  const [isExiting, setIsExiting] = useState(false);
 
   const { friends, getFriendsList, isLoadingFriends } = useFriendStore();
 
@@ -18,8 +20,17 @@ const AddMemberModal = ({
       getFriendsList();
       setSelectedUserIds([]);
       setSearchTerm("");
+      setIsExiting(false);
     }
   }, [isOpen, getFriendsList]);
+
+  const closeWithAnimation = () => {
+    setIsExiting(true);
+    setTimeout(() => {
+      onClose();
+      setIsExiting(false); // clear exit state so overlay stops blocking future opens
+    }, 220);
+  };
 
   const toggleSelectUser = (userId) => {
     setSelectedUserIds((prev) =>
@@ -29,10 +40,10 @@ const AddMemberModal = ({
     );
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (selectedUserIds.length === 0) return;
-    onAddMembers(selectedUserIds);
-    onClose();
+    await onAddMembers(selectedUserIds);
+    closeWithAnimation();
   };
 
   const filteredFriends = useMemo(() => {
@@ -52,15 +63,25 @@ const AddMemberModal = ({
     });
   }, [friends, existingMemberIds, searchTerm]);
 
-  if (!isOpen) return null;
+  if (!isOpen && !isExiting) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-base-100 w-full max-w-md rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+  const modal = (
+    <div
+      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 transition-opacity duration-200 ${
+        isExiting ? "opacity-0" : "opacity-100"
+      }`}
+    >
+      <div
+        className={`bg-base-100 w-full max-w-md rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] transition duration-200 transform ${
+          isExiting
+            ? "opacity-0 translate-y-2 scale-95"
+            : "opacity-100 translate-y-0 scale-100"
+        }`}
+      >
         {/* Header */}
         <div className="p-4 border-b border-base-300 flex justify-between items-center bg-base-200">
           <h3 className="font-bold text-lg">Add Friends to Group</h3>
-          <button onClick={onClose} className="btn btn-ghost btn-sm btn-circle">
+          <button onClick={closeWithAnimation} className="btn btn-ghost btn-sm btn-circle">
             <X size={20} />
           </button>
         </div>
@@ -134,7 +155,7 @@ const AddMemberModal = ({
 
         {/* Footer */}
         <div className="p-4 border-t border-base-300 bg-base-200 flex justify-end gap-2">
-          <button onClick={onClose} className="btn btn-ghost">
+          <button onClick={closeWithAnimation} className="btn btn-ghost">
             Cancel
           </button>
           <button
@@ -148,6 +169,8 @@ const AddMemberModal = ({
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 };
 
 export default AddMemberModal;

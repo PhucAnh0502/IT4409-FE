@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { X, UserPlus, LogOut, Edit2, Save, UserX } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { X, UserPlus, LogOut, Edit2, Save, UserX, Camera } from "lucide-react";
 import { useConversationStore } from "../../stores/useConversationStore";
 import { getUserIdFromToken } from "../../lib/utils";
 import AddMemberModal from "./AddMemberModal"; 
@@ -10,6 +10,8 @@ const ChatRightSidebar = ({ conversation, onClose }) => {
     kickMember, 
     addMemberToGroup, 
     updateGroupInfo,
+    updateGroupAvatar,
+    isUpdatingGroupAvatar,
     connection 
   } = useConversationStore(); 
   
@@ -17,6 +19,17 @@ const ChatRightSidebar = ({ conversation, onClose }) => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [groupName, setGroupName] = useState(conversation?.name || "");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      await updateGroupAvatar(file);
+    } catch (error) {
+      console.error("Error updating avatar:", error);
+    }
+  };
 
   const handleUpdateName = async () => {
     if (!groupName.trim()) return;
@@ -79,10 +92,35 @@ const ChatRightSidebar = ({ conversation, onClose }) => {
           
           {/* GROUP AVATAR & NAME */}
           <div className="flex flex-col items-center gap-3">
-            <div className="avatar">
-              <div className="w-24 rounded-full border-2 border-primary/20 p-1">
-                <img src={conversation?.avatarUrl || "/default-group.png"} alt="Group Avatar" className="rounded-full object-cover" />
+            <div className="avatar relative">
+              <div
+                className="w-24 rounded-full border-2 border-primary/20 p-1 cursor-pointer group relative"
+                onClick={() => isAdmin && fileInputRef.current?.click()}
+                title={isAdmin ? "Click to change avatar" : ""}
+              >
+                <img
+                  src={conversation?.avatarUrl || "/default-group.png"}
+                  alt="Group Avatar"
+                  className="rounded-full object-cover"
+                />
+                {isAdmin && (
+                  <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Camera size={20} className="text-white" />
+                  </div>
+                )}
+                {isUpdatingGroupAvatar && (
+                  <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center">
+                    <span className="loading loading-spinner loading-sm text-white"></span>
+                  </div>
+                )}
               </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="hidden"
+              />
             </div>
             
             <div className="w-full text-center">
@@ -127,7 +165,7 @@ const ChatRightSidebar = ({ conversation, onClose }) => {
           {/* MEMBER LIST */}
           <div className="space-y-2">
             <label className="text-xs font-bold text-base-content/50 uppercase tracking-wider">
-              Members
+              Members ({conversation?.participants?.length || 0})
             </label>
             <div className="flex flex-col gap-1 max-h-[40vh] overflow-y-auto pr-1">
               {conversation?.participants?.map((member) => (
