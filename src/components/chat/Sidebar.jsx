@@ -15,7 +15,8 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
     createConversation, 
     isCreatingConversation, 
     isCreatingGroup, 
-    createGroup      
+    createGroup,
+    markConversationAsRead      
   } = useConversationStore();
 
   const { friends, getFriendsList, isLoadingFriends } = useFriendStore();
@@ -159,6 +160,7 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
               const id = conversation.id || conversation.conversationId;
               setSelectedConversation(id);
               if (typeof onSelect === 'function') onSelect(id);
+              markConversationAsRead(id);
             }}
           >
             <div className="avatar relative">

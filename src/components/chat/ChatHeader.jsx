@@ -13,7 +13,7 @@ const ChatHeader = ({ close, message, toggleSidebar }) => {
   }, [selectedConversation, conversations]);
 
   const getConversationName = () => currentConversation?.name || "Conversation";
-  const getAvatarUrl = () => currentConversation?.avatarUrl || currentConversation?.avatar || message?.receiverAvatarUrl || "/default-avatar.png";
+  const getAvatarUrl = () => currentConversation?.avatarUrl || message?.receiverAvatarUrl || "/default-avatar.png";
   const conversationName = getConversationName();
 
 

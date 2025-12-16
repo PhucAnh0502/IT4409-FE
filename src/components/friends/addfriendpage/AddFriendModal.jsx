@@ -45,7 +45,7 @@ const AddFriendModal = ({ isOpen, onClose }) => {
     const fetchSuggestedUsers = async () => {
         setIsLoading(true);
         try {
-            const users = await getAllUsers(1, 10);
+            const users = await getAllUsers();
             const currentUserId = getUserIdFromToken();
             
             const filteredUsers = users
@@ -56,7 +56,7 @@ const AddFriendModal = ({ isOpen, onClose }) => {
                     avatarUrl: user.avatarUrl || 'https://via.placeholder.com/60'
                 }));
                 
-            setSuggestedUsers(filteredUsers.slice(0, 5));
+            setSuggestedUsers(filteredUsers);
         } catch (error) {
             console.error('Failed to fetch suggested users:', error);
             setSuggestedUsers([]);
@@ -142,7 +142,10 @@ const AddFriendModal = ({ isOpen, onClose }) => {
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={handleClose}>
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[500px] flex flex-col md:max-h-[80vh] max-h-[90vh]">
+            <div 
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-[500px] flex flex-col md:max-h-[80vh] max-h-[90vh]"
+                onClick={(e) => e.stopPropagation()}
+            >
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
                     <h2 className="text-2xl font-bold text-gray-800">Add Friends</h2>
@@ -175,8 +178,8 @@ const AddFriendModal = ({ isOpen, onClose }) => {
                     </h3>
                 </div>
 
-                {/* Content - Scrollable */}
-                <div className="p-4 overflow-y-auto flex-1 md:flex-initial md:min-h-[400px]">
+                <div className="p-4 flex-1 md:flex-initial h-[400px] overflow-hidden">
+                    <div className="h-full overflow-y-auto">
                     {isLoading ? (
                         <div className="flex items-center justify-center py-12">
                             <div className="loading loading-spinner loading-lg text-primary"></div>
@@ -251,6 +254,7 @@ const AddFriendModal = ({ isOpen, onClose }) => {
                             )}
                         </>
                     )}
+                    </div>
                 </div>
             </div>
         </div>

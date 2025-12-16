@@ -11,6 +11,7 @@ export const useConversationStore = create((set, get) => ({
     isCreatingConversation: false,
     isCreatingGroup: false,
     isUploading: false,
+    isUpdatingGroupAvatar: false,
     
     page: 1,
     hasMore: true, 
@@ -136,7 +137,8 @@ export const useConversationStore = create((set, get) => ({
                 const conv = { ...conversations[idx] };
                 conv.lastMessageContent = message.content;
                 conv.lastMessageTime = message.createdAt;
-                conv.lassMessageSenderAvatarUrl = message.senderAvatarUrl
+                conv.lastMessageSenderAvatarUrl = message.senderAvatarUrl;
+                conv.isRead = false;
                 conversations = [conv, ...conversations.slice(0, idx), ...conversations.slice(idx + 1)];
             }
 
@@ -263,12 +265,90 @@ export const useConversationStore = create((set, get) => ({
         }
     },
 
+    updateGroupAvatar: async (fileOrUrl) => {
+        const conversationId = get().selectedConversation;
+        if (!conversationId) {
+            toast.error("No conversation selected");
+            return;
+        }
+
+        set({ isUpdatingGroupAvatar: true });
+        try {
+            let avatar = fileOrUrl;
+
+            if (fileOrUrl instanceof File || fileOrUrl instanceof Blob) {
+                const uploadFile = get().uploadFile;
+                if (uploadFile) {
+                    avatar = await uploadFile(fileOrUrl);
+                }
+            }
+
+            const response = await authAxiosInstance.put(
+                API.CONVERSATION.UPDATE_GROUP_AVATAR(conversationId),
+                { avatar }
+            );
+
+            set((state) => ({
+                conversations: state.conversations.map((conv) =>
+                    conv.id === conversationId || conv._id === conversationId
+                        ? { ...conv, avatarUrl: response?.avatarUrl || avatar }
+                        : conv
+                ),
+            }));
+
+            toast.success(response?.message || "Group avatar updated successfully");
+        } catch (error) {
+            toast.error(error?.message || "Error updating group avatar");
+            throw error;
+        } finally {
+            set({ isUpdatingGroupAvatar: false });
+        }
+    },
+
     updateConversationName: (conversationId, newName) => {
         set((state) => ({
-            conversations: state.conversations.map((c) => {
-                (c.id === conversationId) ? { ...c, name: newName } : c
-            })
+            conversations: state.conversations.map((c) => (
+                (c?.id === conversationId || c?._id === conversationId)
+                    ? { ...c, name: newName }
+                    : c
+            ))
         }))
+    },
+
+    markConversationAsRead: async (conversationId) => {
+        if (!conversationId) return;
+        try {
+            await authAxiosInstance.post(API.CONVERSATION.MARK_AS_READ(conversationId));
+            
+            set((state) => ({
+                conversations: state.conversations.map((c) =>
+                    (c.id === conversationId || c._id === conversationId)
+                        ? { ...c, isRead: true }
+                        : c
+                ),
+            }));
+        } catch (error) {
+            console.error("Error marking conversation as read:", error);
+        }
+    },
+
+    addMembersSocket: (conversationId, newMembers) => { 
+        set((state) => {
+            const updatedConversations = state.conversations.map((c) => {
+                if (c.id === conversationId) {
+                    const existingIds = new Set(c.participants.map(p => p.id));
+                    const uniqueNewMembers = newMembers.filter(m => !existingIds.has(m.id));
+
+                    return {
+                        ...c,
+                        participants: [...c.participants, ...uniqueNewMembers]
+                    };
+                }
+                return c;
+            });
+
+            return { conversations: updatedConversations };
+        });
     },
 
     removeMemberSocket: (conversationId, kickedMemberId) => {

@@ -27,7 +27,12 @@ export const useUserStore = create((set) => ({
     getAllUsers: async (pageNumber, pageSize) => {
         set({ isLoadingUser: true });
         try {
-            const res = await authAxiosInstance.get(`${API.USER.ALL_USER}?PageNumber=${pageNumber}&PageSize=${pageSize}`);
+            let res;
+            if(!pageNumber || !pageSize){
+                res = await authAxiosInstance.get(`${API.USER.ALL_USER}`);
+            } else {
+                res = await authAxiosInstance.get(`${API.USER.ALL_USER}?PageNumber=${pageNumber}&PageSize=${pageSize}`);
+            }
             return res.userList?.data || [];
         } catch (error) {
             toast.error(error?.message || "Error fetching users");

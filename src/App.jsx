@@ -22,7 +22,7 @@ function App() {
   const {theme} = useThemeStore();
   const hubUrl = import.meta.env.VITE_SIGNALR_HUB;
   const connection = useSignalR(hubUrl);
-  const {appendMessage, updateConversationName, removeMemberSocket, leaveGroupSocket} = useConversationStore();
+  const {appendMessage, addMembersSocket, updateConversationName, removeMemberSocket, leaveGroupSocket} = useConversationStore();
 
   const authUserId = getUserIdFromToken();
 
@@ -34,6 +34,10 @@ function App() {
       console.debug("SignalR ReceiveMessage payload:", payload);
       const conversationId = payload?.conversationId;
       const message = payload;
+
+      if(conversationId && payload.newMembers){
+        addMembersSocket(conversationId.toString(), payload.newMembers);
+      }
 
       if(conversationId && payload.newGroupName){
         updateConversationName(conversationId.toString(), payload.newGroupName);
