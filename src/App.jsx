@@ -13,6 +13,9 @@ import HomePage from "./pages/HomePage"
 import ResetPasswordPage from "./pages/ResetPasswordPage"
 import useSignalR from "./hooks/useSignalR"
 import { SignalRProvider } from "./contexts/SignalRContext"
+import { CallProvider } from "./contexts/CallContext"
+import IncomingCallModal from "./components/call/IncomingCallModal"
+import ActiveCallModal from "./components/call/ActiveCallModal"
 import { useConversationStore } from "./stores/useConversationStore"
 import { useEffect } from "react"
 import FriendsPage from "./pages/FriendsPage"
@@ -80,29 +83,35 @@ function App() {
 
   return (
     <SignalRProvider connection={connection}>
-      <div data-theme={theme}>
-        <Navbar />
+      <CallProvider>
+        <div data-theme={theme}>
+          <Navbar />
 
-        <Routes>
-        <Route element={
-          <PrivateRoutes>
-            <Outlet />
-          </PrivateRoutes>
-        }>         
-          <Route path="/" element={<HomePage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-        </Route>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignUpPage />} />
-        <Route path="/settings" element={<SettingsPages />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/friends" element={<FriendsPage />} />
-        <Route path="*" element={<NotFoundPage />} />
-        </Routes>
+          <Routes>
+          <Route element={
+            <PrivateRoutes>
+              <Outlet />
+            </PrivateRoutes>
+          }>         
+            <Route path="/" element={<HomePage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+          </Route>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/settings" element={<SettingsPages />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/friends" element={<FriendsPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+          </Routes>
 
-        <Toaster />
-      </div>
+          <Toaster />
+          
+          {/* Global Call Modals */}
+          <IncomingCallModal />
+          <ActiveCallModal />
+        </div>
+      </CallProvider>
     </SignalRProvider>
   )
 }
