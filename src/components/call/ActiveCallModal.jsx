@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StreamVideo, StreamCall, SpeakerLayout } from '@stream-io/video-react-sdk';
+import { StreamVideo, StreamCall, SpeakerLayout, useCallStateHooks } from '@stream-io/video-react-sdk';
 import { X, Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MonitorUp, User } from 'lucide-react';
 import { useCall } from '../../contexts/CallContext';
 
@@ -85,46 +85,137 @@ const ActiveCallModal = () => {
     try { const isSharing = activeCall.state?.screenShare?.isLocalScreenShareEnabled; if (isSharing) await activeCall.screenShare.stopPublish(); else await activeCall.screenShare.startPublish(); } catch (e) { console.error(e); }
   };
 
+  // Get participant names
+  const participants = activeCall.state?.participants || [];
+  const participantNames = participants
+    .map(p => p.name || p.userId || 'Unknown')
+    .join(', ');
+
   return (
-    <div className="fixed inset-0 z-[9999] bg-base-300">
+    <div className="fixed inset-0 z-[10000] bg-gray-900">
       <StreamVideo client={client}>
         <StreamCall call={activeCall}>
           <div className="relative w-full h-full flex flex-col">
-            <div className="absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/70 via-black/40 to-transparent p-6">
-              <div className="flex items-center justify-between max-w-7xl mx-auto">
+            {/* Header */}
+            <div className="absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/90 via-black/60 to-transparent">
+              <div className="flex items-center justify-between p-6">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-3">
                     {isAudioOnly ? (
-                      <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center"><User className="w-5 h-5 text-success" /></div>
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg">
+                        <User className="w-6 h-6 text-white" />
+                      </div>
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center"><VideoIcon className="w-5 h-5 text-primary" /></div>
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                        <VideoIcon className="w-6 h-6 text-white" />
+                      </div>
                     )}
                     <div>
-                      <h3 className="text-white font-semibold text-lg">{isAudioOnly ? 'Audio Call' : 'Video Call'}</h3>
-                      <p className="text-white/70 text-sm">{formatDuration(callDuration)}</p>
+                      <h3 className="text-white font-bold text-xl tracking-tight">
+                        {isAudioOnly ? 'Audio Call' : 'Video Call'}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <p className="text-white/80 text-sm font-medium">{formatDuration(callDuration)}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <button onClick={endCall} className="p-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full text-white transition-all" title="Close"><X className="w-5 h-5" /></button>
+                <button
+                  onClick={endCall}
+                  className="p-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full text-white transition-all duration-200 hover:scale-110"
+                  title="Minimize"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Participants info - Show full names */}
+              <div className="px-6 pb-4">
+                <div className="bg-white/10 backdrop-blur-md rounded-xl px-4 py-2.5 border border-white/20">
+                  <p className="text-white/90 text-sm font-medium flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    <span className="truncate">{participantNames || 'Connecting...'}</span>
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-base-200 via-base-300 to-base-200">
-              <div className="w-full h-full max-w-7xl mx-auto p-4 pt-24 pb-32">
-                <div className="w-full h-full rounded-2xl overflow-hidden bg-base-100 shadow-2xl border border-base-300">
+            {/* Video Area */}
+            <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+              <div className="w-full h-full max-w-7xl mx-auto p-4 pt-32 pb-32">
+                <div className="w-full h-full rounded-3xl overflow-hidden bg-black shadow-2xl border border-gray-700">
                   <SpeakerLayout />
                 </div>
               </div>
             </div>
 
-            <div className="absolute bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-6 pb-8">
+            {/* Controls */}
+            <div className="absolute bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-6 pb-10">
               <div className="max-w-2xl mx-auto">
-                <div className="bg-base-100/95 backdrop-blur-xl rounded-2xl p-5 shadow-2xl border border-base-300">
+                <div className="bg-gray-800/95 backdrop-blur-xl rounded-3xl p-6 shadow-2xl border border-gray-700">
                   <div className="flex items-center justify-center gap-4">
-                    <button onClick={toggleMic} className={`w-14 h-14 rounded-full ${isMicOn ? 'bg-base-200' : 'bg-error text-white'}`} title="Mic">{isMicOn ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}</button>
-                    {!isAudioOnly && <button onClick={toggleVideo} className={`w-14 h-14 rounded-full ${isVideoOn ? 'bg-base-200' : 'bg-error text-white'}`} title="Camera">{isVideoOn ? <VideoIcon className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}</button>}
-                    {!isAudioOnly && <button onClick={toggleScreen} className="w-14 h-14 rounded-full bg-base-200" title="Screen Share"><MonitorUp className="w-6 h-6" /></button>}
-                    <button onClick={endCall} className="w-14 h-14 rounded-full bg-error text-white" title="End"><PhoneOff className="w-6 h-6" /></button>
+                    {/* Mic Button */}
+                    <div className="flex flex-col items-center gap-2">
+                      <button
+                        onClick={toggleMic}
+                        className={`w-16 h-16 rounded-full transition-all duration-200 hover:scale-110 shadow-lg ${isMicOn
+                            ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                            : 'bg-red-500 hover:bg-red-600 text-white'
+                          }`}
+                        title={isMicOn ? 'Mute' : 'Unmute'}
+                      >
+                        {isMicOn ? <Mic className="w-7 h-7" /> : <MicOff className="w-7 h-7" />}
+                      </button>
+                      <span className="text-white/70 text-xs font-medium">
+                        {isMicOn ? 'Mic' : 'Muted'}
+                      </span>
+                    </div>
+
+                    {/* Camera Button (only for video calls) */}
+                    {!isAudioOnly && (
+                      <div className="flex flex-col items-center gap-2">
+                        <button
+                          onClick={toggleVideo}
+                          className={`w-16 h-16 rounded-full transition-all duration-200 hover:scale-110 shadow-lg ${isVideoOn
+                              ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                              : 'bg-red-500 hover:bg-red-600 text-white'
+                            }`}
+                          title={isVideoOn ? 'Stop Video' : 'Start Video'}
+                        >
+                          {isVideoOn ? <VideoIcon className="w-7 h-7" /> : <VideoOff className="w-7 h-7" />}
+                        </button>
+                        <span className="text-white/70 text-xs font-medium">
+                          {isVideoOn ? 'Camera' : 'Off'}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Screen Share Button (only for video calls) */}
+                    {!isAudioOnly && (
+                      <div className="flex flex-col items-center gap-2">
+                        <button
+                          onClick={toggleScreen}
+                          className="w-16 h-16 rounded-full bg-gray-700 hover:bg-gray-600 text-white transition-all duration-200 hover:scale-110 shadow-lg"
+                          title="Share Screen"
+                        >
+                          <MonitorUp className="w-7 h-7" />
+                        </button>
+                        <span className="text-white/70 text-xs font-medium">Share</span>
+                      </div>
+                    )}
+
+                    {/* End Call Button */}
+                    <div className="flex flex-col items-center gap-2">
+                      <button
+                        onClick={endCall}
+                        className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white transition-all duration-200 hover:scale-110 shadow-lg"
+                        title="End Call"
+                      >
+                        <PhoneOff className="w-7 h-7" />
+                      </button>
+                      <span className="text-red-400 text-xs font-medium">End</span>
+                    </div>
                   </div>
                 </div>
               </div>
