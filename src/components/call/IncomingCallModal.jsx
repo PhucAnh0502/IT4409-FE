@@ -31,9 +31,9 @@ const IncomingCallModal = () => {
 
   if (!incomingCall) return null;
 
-  // callerName được lưu từ CallContext khi nhận ring event
-  const callerName = incomingCall.callerName || 'Someone';
-  const isAudioOnly = incomingCall.type === 'audio_room' || incomingCall.state?.custom?.isAudioOnly || false;
+  // callerName và isAudioOnly được lưu từ CallContext khi nhận ring event
+  const callerName = incomingCall.callerName;
+  const isAudioOnly = incomingCall.isAudioOnly || false;
 
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 animate-fadeIn">

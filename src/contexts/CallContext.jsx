@@ -4,6 +4,7 @@ import { getStreamToken } from '../lib/tokenService';
 import { sanitizeUserId } from '../lib/callHelpers';
 import { useAuthStore } from '../stores/useAuthStore';
 import { getUserIdFromToken, getToken } from '../lib/utils';
+import { getUserName } from '../lib/userService';
 import toast from 'react-hot-toast';
 
 const CallContext = createContext(null);
@@ -23,7 +24,7 @@ export const CallProvider = ({ children }) => {
 
   // Lấy userId từ token thay vì authUser (đảm bảo consistency)
   const currentUserId = getUserIdFromToken();
-  const currentUserName = authUser?.name || authUser?.fullName || authUser?.userName || currentUserId;
+  const currentUserName = authUser?.userName;
 
   // Initialize StreamVideoClient
   useEffect(() => {
@@ -45,46 +46,56 @@ export const CallProvider = ({ children }) => {
     (async () => {
       try {
         const sanitized = sanitizeUserId(currentUserId);
-        console.log('🔑 Getting Stream token for:', sanitized);
+        console.log('Getting Stream token for:', sanitized);
 
         const token = await getStreamToken(sanitized);
-        console.log('✅ Token received:', token ? 'Yes' : 'No');
+        console.log('Token received:', token ? 'Yes' : 'No');
 
         const apiKey = import.meta.env.VITE_GETSTREAM_API_KEY;
-        console.log('🔑 API Key:', apiKey ? 'Present' : 'MISSING');
+        console.log('API Key:', apiKey ? 'Present' : 'MISSING');
 
         if (!apiKey) {
-          console.error('❌ VITE_GETSTREAM_API_KEY is not defined in .env');
+          console.error('VITE_GETSTREAM_API_KEY is not defined in .env');
           return;
+        }
+
+        // Fetch username từ API nếu authUser không có
+        let userName = authUser?.userName;
+        if (!userName) {
+          console.log('Fetching userName from API for userId:', currentUserId);
+          userName = await getUserName(currentUserId);
+          console.log('Fetched userName:', userName);
         }
 
         const videoClient = new StreamVideoClient({
           apiKey,
           user: {
             id: sanitized,
-            name: currentUserName || sanitized
+            name: userName || sanitized  // Sử dụng userName từ API
           },
           token,
         });
 
-        console.log('✅ StreamVideoClient created successfully');
+        console.log('StreamVideoClient created successfully');
 
         if (!mounted) return;
         setClient(videoClient);
-        console.log('✅ Client set in state');
-
+        console.log('Client set in state');
         // Listen for incoming ringing calls
         videoClient.on('call.ring', (ev) => {
           const callCid = ev.call?.cid;
           if (!callCid) return;
           const [callType, callId] = callCid.split(':');
           const call = videoClient.call(callType, callId);
-          // Lưu thêm thông tin caller name để modal hiển thị
-          const callerName = ev.call?.created_by?.name || 'Someone';
-          setIncomingCall({ ...call, callerName });
+
+          // Lấy caller name từ custom data hoặc created_by
+          const callerName = ev.call?.custom?.callerName || ev.call?.created_by?.name || 'Someone';
+          const isAudioOnly = ev.call?.custom?.isAudioOnly || false;
+
+          setIncomingCall({ ...call, callerName, isAudioOnly });
         });
       } catch (e) {
-        console.error('❌ StreamVideo init error:', e);
+        console.error('StreamVideo init error:', e);
       }
     })();
 

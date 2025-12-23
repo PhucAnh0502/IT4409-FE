@@ -7,7 +7,23 @@ const ActiveCallModal = () => {
   const { client, activeCall, endCall } = useCall();
   const [callDuration, setCallDuration] = useState(0);
   const [isMicOn, setIsMicOn] = useState(true);
-  const [isVideoOn, setIsVideoOn] = useState(true);
+
+  // Detect if call is audio-only
+  const isAudioOnly = activeCall?.state?.custom?.isAudioOnly || false;
+  const [isVideoOn, setIsVideoOn] = useState(!isAudioOnly);
+
+  // Disable camera if audio-only call
+  useEffect(() => {
+    if (!activeCall) return;
+
+    const isAudio = activeCall.state?.custom?.isAudioOnly || false;
+
+    if (isAudio) {
+      // Tắt camera cho audio call
+      activeCall.camera.disable().catch(err => console.error('Error disabling camera:', err));
+      setIsVideoOn(false);
+    }
+  }, [activeCall]);
 
   // timer
   useEffect(() => {
@@ -52,8 +68,6 @@ const ActiveCallModal = () => {
 
   if (!activeCall || !client) return null;
 
-  const isAudioOnly = activeCall.type === 'audio_room' || activeCall.state?.custom?.isAudioOnly;
-
   const formatDuration = (s) => {
     const m = Math.floor(s / 60); const sec = s % 60; return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
   };
@@ -61,7 +75,10 @@ const ActiveCallModal = () => {
   const toggleMic = async () => {
     try { if (isMicOn) await activeCall.microphone.disable(); else await activeCall.microphone.enable(); setIsMicOn(!isMicOn); } catch (e) { console.error(e); }
   };
+
   const toggleVideo = async () => {
+    // Không cho toggle camera nếu là audio call
+    if (isAudioOnly) return;
     try { if (isVideoOn) await activeCall.camera.disable(); else await activeCall.camera.enable(); setIsVideoOn(!isVideoOn); } catch (e) { console.error(e); }
   };
   const toggleScreen = async () => {

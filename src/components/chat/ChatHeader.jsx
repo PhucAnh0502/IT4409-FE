@@ -7,6 +7,7 @@ import { generateCallId, getCallParticipants } from "../../lib/streamUtils";
 import { extractUserInfo } from "../../lib/jwtUtils";
 import { sanitizeUserId } from "../../lib/callHelpers";
 import { getUserIdFromToken } from "../../lib/utils";
+import { getUserName } from "../../lib/userService";
 import toast from "react-hot-toast";
 
 const ChatHeader = ({ close, message, toggleSidebar }) => {
@@ -29,7 +30,17 @@ const ChatHeader = ({ close, message, toggleSidebar }) => {
   const handleStartCall = async (isAudioOnly = false) => {
     // Get userId from token instead of authUser
     const currentUserId = getUserIdFromToken();
-    const currentUserName = authUser?.name || authUser?.fullName || authUser?.userName || currentUserId;
+
+    // Fetch username từ API nếu authUser không có
+    let currentUserName = authUser?.userName;
+    if (!currentUserName) {
+      console.log('Fetching userName from API...');
+      currentUserName = await getUserName(currentUserId);
+      console.log('Fetched userName:', currentUserName);
+    }
+
+    // Fallback to userId nếu vẫn không lấy được username
+    currentUserName = currentUserName || currentUserId;
 
     console.log('🔍 DEBUG handleStartCall:', {
       currentConversation,
@@ -100,7 +111,10 @@ const ChatHeader = ({ close, message, toggleSidebar }) => {
         ring: true,
         data: {
           members: memberUserIds.map(userId => ({ user_id: userId })),
-          custom: { isAudioOnly }
+          custom: {
+            isAudioOnly,
+            callerName: currentUserName  // Thêm caller name để receiver hiển thị
+          }
         },
       });
       // KHÔNG join call ở đây! Chờ receiver accept mới join
