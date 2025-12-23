@@ -39,5 +39,8 @@ export const API = {
         GET_ALL_FRIENDS: '/Friend',
         GET_RECEIVED_REQUESTS: '/Friend/requests/received',
         GET_SENT_REQUESTS: '/Friend/requests/sent',
+    },
+    VIDEOCALL: {
+        GET_TOKEN: '/VideoCall',
     }
 }

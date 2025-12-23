@@ -1,8 +1,9 @@
 /**
- * Service để lấy GetStream token từ token server
+ * Service để lấy GetStream token từ backend API
  */
 
-const TOKEN_SERVER_URL = 'http://localhost:3001';
+import { authAxiosInstance } from './axios';
+import { API } from './api';
 
 /**
  * Lấy GetStream token cho user
@@ -12,45 +13,59 @@ const TOKEN_SERVER_URL = 'http://localhost:3001';
 export const getStreamToken = async (userId) => {
   try {
     console.log('📡 Requesting GetStream token for userId:', userId);
-    
-    const response = await fetch(`${TOKEN_SERVER_URL}/api/getstream/token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ userId }),
+
+    const response = await authAxiosInstance.post(API.VIDEOCALL.GET_TOKEN, {
+      senderId: userId,
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Failed to get token: ${response.statusText}`);
+    //console.log('✅ GetStream token response:', response);
+    //console.log('Response type:', typeof response);
+    //console.log('Response keys:', Object.keys(response || {}));
+
+    // Backend trả về { Token: "..." } với chữ T hoa
+    // hoặc có thể là { token: "..." } với chữ t thường
+    let token = response?.Token || response?.token || response?.data?.Token || response?.data?.token;
+
+    //console.log('🔍 Raw token (before cleaning):', token);
+    //console.log('Token type:', typeof token);
+//
+    //if (!token || typeof token !== 'string') {
+    //  console.error('❌ Invalid token received:', token);
+    //  throw new Error('Invalid token format received from server');
+    //}
+
+    // Clean token: xóa whitespace và dấu ngoặc kép dư thừa
+    token = token.trim();
+
+    // Nếu token bị wrap trong dấu ngoặc kép, xóa chúng đi
+    if (token.startsWith('"') && token.endsWith('"')) {
+      token = token.slice(1, -1);
+      //console.log('⚠️ Removed surrounding quotes from token');
     }
 
-    const data = await response.json();
-    console.log('GetStream token received successfully');
-    
-    return data.token;
-  } catch (error) {
-    console.error('Error getting GetStream token:', error);
-    
-    // Kiểm tra xem có phải lỗi kết nối đến token server không
-    if (error.message.includes('fetch')) {
-      throw new Error('Không thể kết nối đến Token Server. Vui lòng chạy: npm run token-server');
-    }
-    
-    throw error;
-  }
-};
+    // Kiểm tra lại sau khi clean
+    //if (!token || token.length === 0) {
+    //  console.error('❌ Token is empty after cleaning');
+    //  throw new Error('Empty token received from server');
+    //}
 
-/**
- * Kiểm tra xem token server có đang chạy không
- * @returns {Promise<boolean>}
- */
-export const checkTokenServerHealth = async () => {
-  try {
-    const response = await fetch(`${TOKEN_SERVER_URL}/health`);
-    return response.ok;
+    //console.log('✅ Token extracted and cleaned successfully');
+    //console.log('Token length:', token.length);
+    //console.log('Token preview:', token.substring(0, 20) + '...');
+
+    return token;
   } catch (error) {
-    return false;
+    console.error('❌ Error getting GetStream token:', error);
+
+    if (error.response) {
+      // Server trả về lỗi
+      throw new Error(error.response.data?.message || `Failed to get token: ${error.response.statusText}`);
+    } else if (error.request) {
+      // Request được gửi nhưng không nhận được response
+      throw new Error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.');
+    } else {
+      // Lỗi khác
+      throw new Error(error.message || 'Đã xảy ra lỗi khi lấy token');
+    }
   }
 };

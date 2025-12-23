@@ -28,16 +28,19 @@ export const CallProvider = ({ children }) => {
 
   // Initialize StreamVideoClient
   useEffect(() => {
-    const token = getToken();
+    const authToken = getToken();
     console.log('🔧 CallContext: Initializing client...', {
-      hasToken: !!token,
+      hasToken: !!authToken,
       hasAuthUser: !!authUser,
       currentUserId,
       currentUserName
     });
 
-    if (!token || !currentUserId) {
-      console.warn('⚠️ CallContext: Missing token or currentUserId', { hasToken: !!token, currentUserId });
+    if (!authToken || !currentUserId) {
+      console.warn('⚠️ CallContext: Missing auth token or currentUserId', {
+        hasToken: !!authToken,
+        currentUserId
+      });
       return;
     }
 
@@ -46,41 +49,64 @@ export const CallProvider = ({ children }) => {
     (async () => {
       try {
         const sanitized = sanitizeUserId(currentUserId);
-        console.log('Getting Stream token for:', sanitized);
+        console.log('🔑 Getting Stream token for:', sanitized);
 
-        const token = await getStreamToken(sanitized);
-        console.log('Token received:', token ? 'Yes' : 'No');
+        // Lấy token từ backend (return string)
+        const streamToken = await getStreamToken(sanitized);
 
+        console.log('✅ Stream token received');
+        console.log('Stream token type:', typeof streamToken);
+        console.log('Stream token length:', streamToken?.length);
+
+        if (!streamToken) {
+          console.error('❌ Stream token is null or undefined');
+          return;
+        }
+
+        // Lấy apiKey từ .env
         const apiKey = import.meta.env.VITE_GETSTREAM_API_KEY;
-        console.log('API Key:', apiKey ? 'Present' : 'MISSING');
+        console.log('🔑 GetStream API Key from .env:', apiKey ? 'Present' : 'MISSING');
 
         if (!apiKey) {
-          console.error('VITE_GETSTREAM_API_KEY is not defined in .env');
+          console.error('❌ VITE_GETSTREAM_API_KEY is not defined in .env');
+          console.error('Please add VITE_GETSTREAM_API_KEY to your .env file');
           return;
         }
 
         // Fetch username từ API nếu authUser không có
         let userName = authUser?.userName;
         if (!userName) {
-          console.log('Fetching userName from API for userId:', currentUserId);
+          console.log('👤 Fetching userName from API for userId:', currentUserId);
           userName = await getUserName(currentUserId);
-          console.log('Fetched userName:', userName);
+          console.log('✅ Fetched userName:', userName);
         }
+
+        console.log('🎥 Creating StreamVideoClient with:', {
+          apiKey: apiKey.substring(0, 10) + '...',
+          userId: sanitized,
+          userName: userName || sanitized,
+          tokenLength: streamToken.length
+        });
 
         const videoClient = new StreamVideoClient({
           apiKey,
           user: {
             id: sanitized,
-            name: userName || sanitized  // Sử dụng userName từ API
+            name: userName || sanitized
           },
-          token,
+          token: streamToken,
         });
 
-        console.log('StreamVideoClient created successfully');
+        console.log('✅ StreamVideoClient created successfully');
 
-        if (!mounted) return;
+        if (!mounted) {
+          console.log('⚠️ Component unmounted, not setting client');
+          return;
+        }
+
         setClient(videoClient);
-        console.log('Client set in state');
+        console.log('✅ Client set in state');
+
         // Listen for incoming ringing calls
         videoClient.on('call.ring', (ev) => {
           const callCid = ev.call?.cid;
@@ -95,7 +121,9 @@ export const CallProvider = ({ children }) => {
           setIncomingCall({ ...call, callerName, isAudioOnly });
         });
       } catch (e) {
-        console.error('StreamVideo init error:', e);
+        console.error('❌ StreamVideo init error:', e);
+        console.error('Error stack:', e.stack);
+        console.error('Error message:', e.message);
       }
     })();
 
