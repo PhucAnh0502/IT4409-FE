@@ -88,7 +88,7 @@ const ActiveCallModal = () => {
   // Get participant names
   const participants = activeCall.state?.participants || [];
   const participantNames = participants
-    .map(p => p.name || p.userId || 'Unknown')
+    .map(p => p.userName)
     .join(', ');
 
   return (
@@ -134,7 +134,7 @@ const ActiveCallModal = () => {
               <div className="px-6 pb-4">
                 <div className="bg-white/10 backdrop-blur-md rounded-xl px-4 py-2.5 border border-white/20">
                   <p className="text-white/90 text-sm font-medium flex items-center gap-2">
-                    <User className="w-4 h-4" />
+                    {/*<User className="w-4 h-4" />*/}
                     <span className="truncate">{participantNames || 'Connecting...'}</span>
                   </p>
                 </div>
@@ -155,14 +155,16 @@ const ActiveCallModal = () => {
               <div className="max-w-2xl mx-auto">
                 <div className="bg-gray-800/95 backdrop-blur-xl rounded-3xl p-6 shadow-2xl border border-gray-700">
                   <div className="flex items-center justify-center gap-4">
+                              
                     {/* Mic Button */}
                     <div className="flex flex-col items-center gap-2">
                       <button
                         onClick={toggleMic}
-                        className={`w-16 h-16 rounded-full transition-all duration-200 hover:scale-110 shadow-lg ${isMicOn
+                        className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg ${
+                          isMicOn
                             ? 'bg-gray-700 hover:bg-gray-600 text-white'
                             : 'bg-red-500 hover:bg-red-600 text-white'
-                          }`}
+                        }`}
                         title={isMicOn ? 'Mute' : 'Unmute'}
                       >
                         {isMicOn ? <Mic className="w-7 h-7" /> : <MicOff className="w-7 h-7" />}
@@ -171,16 +173,17 @@ const ActiveCallModal = () => {
                         {isMicOn ? 'Mic' : 'Muted'}
                       </span>
                     </div>
-
+                      
                     {/* Camera Button (only for video calls) */}
                     {!isAudioOnly && (
                       <div className="flex flex-col items-center gap-2">
                         <button
                           onClick={toggleVideo}
-                          className={`w-16 h-16 rounded-full transition-all duration-200 hover:scale-110 shadow-lg ${isVideoOn
+                          className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg ${
+                            isVideoOn
                               ? 'bg-gray-700 hover:bg-gray-600 text-white'
                               : 'bg-red-500 hover:bg-red-600 text-white'
-                            }`}
+                          }`}
                           title={isVideoOn ? 'Stop Video' : 'Start Video'}
                         >
                           {isVideoOn ? <VideoIcon className="w-7 h-7" /> : <VideoOff className="w-7 h-7" />}
@@ -190,13 +193,13 @@ const ActiveCallModal = () => {
                         </span>
                       </div>
                     )}
-
+            
                     {/* Screen Share Button (only for video calls) */}
                     {!isAudioOnly && (
                       <div className="flex flex-col items-center gap-2">
                         <button
                           onClick={toggleScreen}
-                          className="w-16 h-16 rounded-full bg-gray-700 hover:bg-gray-600 text-white transition-all duration-200 hover:scale-110 shadow-lg"
+                          className="w-16 h-16 rounded-full flex items-center justify-center bg-gray-700 hover:bg-gray-600 text-white transition-all duration-200 hover:scale-110 shadow-lg"
                           title="Share Screen"
                         >
                           <MonitorUp className="w-7 h-7" />
@@ -204,18 +207,19 @@ const ActiveCallModal = () => {
                         <span className="text-white/70 text-xs font-medium">Share</span>
                       </div>
                     )}
-
+            
                     {/* End Call Button */}
                     <div className="flex flex-col items-center gap-2">
                       <button
                         onClick={endCall}
-                        className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white transition-all duration-200 hover:scale-110 shadow-lg"
+                        className="w-16 h-16 rounded-full flex items-center justify-center bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white transition-all duration-200 hover:scale-110 shadow-lg"
                         title="End Call"
                       >
                         <PhoneOff className="w-7 h-7" />
                       </button>
                       <span className="text-red-400 text-xs font-medium">End</span>
                     </div>
+                  
                   </div>
                 </div>
               </div>
