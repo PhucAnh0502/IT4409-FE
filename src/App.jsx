@@ -16,6 +16,7 @@ import { SignalRProvider } from "./contexts/SignalRContext"
 import { CallProvider } from "./contexts/CallContext"
 import IncomingCallModal from "./components/call/IncomingCallModal"
 import ActiveCallModal from "./components/call/ActiveCallModal"
+import OutgoingCallModal from "./components/call/OutgoingCallModal"
 import { useConversationStore } from "./stores/useConversationStore"
 import { useEffect } from "react"
 import FriendsPage from "./pages/FriendsPage"
@@ -109,6 +110,7 @@ function App() {
           
           {/* Global Call Modals */}
           <IncomingCallModal />
+          <OutgoingCallModal />
           <ActiveCallModal />
         </div>
       </CallProvider>

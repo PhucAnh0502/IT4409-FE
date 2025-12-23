@@ -59,6 +59,14 @@
   height: 100%;
 }
 
+/* Hide participant names/IDs */
+.str-video__participant-details,
+.str-video__participant-name,
+.str-video__participant-label,
+.str-video__video-placeholder__label {
+  display: none !important;
+}
+
 /* Call controls container - horizontal layout */
 .str-video__call-controls {
   display: flex !important;

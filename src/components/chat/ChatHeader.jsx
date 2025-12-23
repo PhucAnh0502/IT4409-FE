@@ -1,17 +1,18 @@
 import React, { useMemo } from "react";
-import { X, EllipsisVertical, Video, Phone } from "lucide-react"; 
+import { X, EllipsisVertical, Video, Phone } from "lucide-react";
 import { useConversationStore } from "../../stores/useConversationStore";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { useCall } from "../../contexts/CallContext";
 import { generateCallId, getCallParticipants } from "../../lib/streamUtils";
 import { extractUserInfo } from "../../lib/jwtUtils";
 import { sanitizeUserId } from "../../lib/callHelpers";
+import { getUserIdFromToken } from "../../lib/utils";
 import toast from "react-hot-toast";
 
 const ChatHeader = ({ close, message, toggleSidebar }) => {
   const { selectedConversation, conversations } = useConversationStore();
   const { authUser } = useAuthStore();
-  const { client, setActiveCall } = useCall();
+  const { client, setActiveCall, setOutgoingCall } = useCall();
 
   const currentConversation = useMemo(() => {
     if (!selectedConversation || !conversations) return null;
@@ -26,82 +27,94 @@ const ChatHeader = ({ close, message, toggleSidebar }) => {
 
   // Xử lý khởi tạo cuộc gọi
   const handleStartCall = async (isAudioOnly = false) => {
-    console.log("=== DEBUG: handleStartCall ===");
-    console.log("Audio only:", isAudioOnly);
-    
-    if (!currentConversation || !authUser || !client) {
+    // Get userId from token instead of authUser
+    const currentUserId = getUserIdFromToken();
+    const currentUserName = authUser?.name || authUser?.fullName || authUser?.userName || currentUserId;
+
+    console.log('🔍 DEBUG handleStartCall:', {
+      currentConversation,
+      currentUserId,
+      currentUserName,
+      client,
+      hasClient: !!client
+    });
+
+    if (!currentConversation || !client || !currentUserId) {
+      console.error('❌ Failed initial check:', {
+        hasConversation: !!currentConversation,
+        hasClient: !!client,
+        hasUserId: !!currentUserId
+      });
       toast.error("Không thể khởi tạo cuộc gọi");
       return;
     }
 
     try {
       const conversationId = currentConversation.id || currentConversation._id;
-      const { userId: currentUserId, userName: currentUserName } = extractUserInfo(authUser);
-      
-      if (!currentUserId) {
-        toast.error("Không thể xác định user ID");
-        return;
-      }
-      
+      console.log('📞 Starting call with conversationId:', conversationId);
+      console.log('👤 User info:', { currentUserId, currentUserName });
+
       const callParticipants = getCallParticipants(currentConversation, currentUserId);
-      
+      console.log('👥 Call participants:', callParticipants);
+
       if (callParticipants.length === 0) {
         toast.error("Không tìm thấy người nhận cuộc gọi");
         return;
       }
-
       // Tạo call ID
       const callId = generateCallId(conversationId);
-      
-      // Tạo call với GetStream - luôn dùng "default" type
-      const call = client.call('default', callId);
-      
-      // Tạo members list với username
+      // Chọn call type
+      // Use 'default' for both audio and video calls and mark audio-only via custom flag.
+      // Using 'audio_room' can require special JoinBackstage permissions on the coordinator
+      // which consumer tokens issued by the local token server may not include.
+      const callType = 'default';
+      const call = client.call(callType, callId);
+      // Prepare member IDs
       const sanitizedUserId = sanitizeUserId(currentUserId);
-      const members = [
-        { 
-          user_id: sanitizedUserId,
-          custom: { name: currentUserName || sanitizedUserId }
-        },
-        ...callParticipants.map(p => ({ 
-          user_id: sanitizeUserId(p.userId),
-          custom: { name: p.name || p.userId }
-        }))
+      const sanitizedParticipants = callParticipants.map(p => ({
+        userId: sanitizeUserId(p.userId),
+        name: p.name || p.userId
+      }));
+
+      console.log('👥 Sanitized participants:', sanitizedParticipants);
+
+      // Prepare member user IDs for the call
+      const memberUserIds = [
+        sanitizedUserId,
+        ...sanitizedParticipants.map(p => p.userId)
       ];
-      
+
+      console.log('📞 Creating call with member IDs:', memberUserIds);
+
+      // Set outgoing call state để hiển thị waiting screen
+      setOutgoingCall({
+        receiverName: callParticipants[0]?.name || 'Someone',
+        isAudioOnly: isAudioOnly,
+        callId,
+        callType,
+      });
+
       // Create call và bắt đầu ring
+      // Note: Stream will automatically create users when they join/receive calls
       await call.getOrCreate({
         ring: true,
-        data: { 
-          members,
-          custom: { isAudioOnly } // Lưu thông tin audio only
+        data: {
+          members: memberUserIds.map(userId => ({ user_id: userId })),
+          custom: { isAudioOnly }
         },
       });
-      
-      console.log("Call created, joining...");
-      
-      // Join call
-      await call.join();
-      
-      // Nếu là audio call, tắt camera
-      if (isAudioOnly) {
-        console.log('🎤 Audio-only call, disabling camera');
-        await call.camera.disable();
-      }
-      
-      // Set active call
-      setActiveCall(call);
-      
+      // KHÔNG join call ở đây! Chờ receiver accept mới join
       toast.success("Đang gọi...");
     } catch (error) {
       console.error("Error starting call:", error);
+      setOutgoingCall(null);
       toast.error(`Lỗi: ${error.message}`);
     }
   };
 
 
   return (
-    <div className="p-2.5 border-b border-base-300 flex-shrink-0"> 
+    <div className="p-2.5 border-b border-base-300 flex-shrink-0">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="avatar">
@@ -116,39 +129,39 @@ const ChatHeader = ({ close, message, toggleSidebar }) => {
         </div>
 
         <div className="flex items-center gap-1">
-            <button
-                className="p-2 hover:bg-base-300 rounded-full transition-colors"
-                onClick={() => handleStartCall(false)}
-                aria-label="Video call"
-                title="Video call"
-            >
-                <Video className="size-5" />
-            </button>
+          <button
+            className="p-2 hover:bg-base-300 rounded-full transition-colors"
+            onClick={() => handleStartCall(false)}
+            aria-label="Video call"
+            title="Video call"
+          >
+            <Video className="size-5" />
+          </button>
 
-            <button
-                className="p-2 hover:bg-base-300 rounded-full transition-colors"
-                onClick={() => handleStartCall(true)}
-                aria-label="Phone call"
-                title="Phone call"
-            >
-                <Phone className="size-5" />
-            </button>
+          <button
+            className="p-2 hover:bg-base-300 rounded-full transition-colors"
+            onClick={() => handleStartCall(true)}
+            aria-label="Phone call"
+            title="Phone call"
+          >
+            <Phone className="size-5" />
+          </button>
 
-            <button
-                className="p-2 hover:bg-base-300 rounded-full transition-colors"
-                onClick={toggleSidebar}
-                aria-label="Conversation info"
-            >
-                <EllipsisVertical className="size-5" />
-            </button>
+          <button
+            className="p-2 hover:bg-base-300 rounded-full transition-colors"
+            onClick={toggleSidebar}
+            aria-label="Conversation info"
+          >
+            <EllipsisVertical className="size-5" />
+          </button>
 
-            <button
-                className="p-2 hover:bg-base-300 rounded-full transition-colors"
-                onClick={close}
-                aria-label="Close conversation"
-            >
-                <X className="size-5" />
-            </button>
+          <button
+            className="p-2 hover:bg-base-300 rounded-full transition-colors"
+            onClick={close}
+            aria-label="Close conversation"
+          >
+            <X className="size-5" />
+          </button>
         </div>
       </div>
     </div>

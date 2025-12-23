@@ -1,235 +1,320 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { StreamVideoClient } from '@stream-io/video-react-sdk';
 import { getStreamToken } from '../lib/tokenService';
-import { extractUserInfo } from '../lib/jwtUtils';
 import { sanitizeUserId } from '../lib/callHelpers';
 import { useAuthStore } from '../stores/useAuthStore';
+import { getUserIdFromToken, getToken } from '../lib/utils';
 import toast from 'react-hot-toast';
 
 const CallContext = createContext(null);
 
 export const useCall = () => {
-  const context = useContext(CallContext);
-  if (!context) {
-    throw new Error('useCall must be used within CallProvider');
-  }
-  return context;
+  const ctx = useContext(CallContext);
+  if (!ctx) throw new Error('useCall must be used within CallProvider');
+  return ctx;
 };
 
 export const CallProvider = ({ children }) => {
   const { authUser } = useAuthStore();
   const [client, setClient] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
+  const [outgoingCall, setOutgoingCall] = useState(null);
   const [activeCall, setActiveCall] = useState(null);
+
+  // Lấy userId từ token thay vì authUser (đảm bảo consistency)
+  const currentUserId = getUserIdFromToken();
+  const currentUserName = authUser?.name || authUser?.fullName || authUser?.userName || currentUserId;
 
   // Initialize StreamVideoClient
   useEffect(() => {
-    if (!authUser) {
-      console.log('No authUser, skipping client init');
-      setClient(null);
+    const token = getToken();
+    console.log('🔧 CallContext: Initializing client...', {
+      hasToken: !!token,
+      hasAuthUser: !!authUser,
+      currentUserId,
+      currentUserName
+    });
+
+    if (!token || !currentUserId) {
+      console.warn('⚠️ CallContext: Missing token or currentUserId', { hasToken: !!token, currentUserId });
       return;
     }
 
-    const initClient = async () => {
+    let mounted = true;
+
+    (async () => {
       try {
-        console.log('Initializing StreamVideoClient...');
-        const { userId, userName } = extractUserInfo(authUser);
-        console.log('User info:', { userId, userName });
-        
-        if (!userId) {
-          console.error('No userId extracted');
+        const sanitized = sanitizeUserId(currentUserId);
+        console.log('🔑 Getting Stream token for:', sanitized);
+
+        const token = await getStreamToken(sanitized);
+        console.log('✅ Token received:', token ? 'Yes' : 'No');
+
+        const apiKey = import.meta.env.VITE_GETSTREAM_API_KEY;
+        console.log('🔑 API Key:', apiKey ? 'Present' : 'MISSING');
+
+        if (!apiKey) {
+          console.error('❌ VITE_GETSTREAM_API_KEY is not defined in .env');
           return;
         }
 
-        const sanitizedUserId = sanitizeUserId(userId);
-        console.log('Sanitized userId:', sanitizedUserId);
-        
-        const token = await getStreamToken(sanitizedUserId);
-        console.log('Token received:', token ? 'Yes' : 'No');
-
         const videoClient = new StreamVideoClient({
-          apiKey: import.meta.env.VITE_GETSTREAM_API_KEY,
+          apiKey,
           user: {
-            id: sanitizedUserId,
-            name: userName || sanitizedUserId,
+            id: sanitized,
+            name: currentUserName || sanitized
           },
-          token: token,
+          token,
         });
 
+        console.log('✅ StreamVideoClient created successfully');
+
+        if (!mounted) return;
         setClient(videoClient);
-        console.log('StreamVideoClient initialized for:', sanitizedUserId);
+        console.log('✅ Client set in state');
 
-        // Listen for incoming calls
-        videoClient.on('call.ring', (event) => {
-          console.log('Incoming call event received:', event);
-          const callCid = event.call?.cid; // Format: "default:call-id" or "audio_room:call-id"
-          if (callCid) {
-            const [callType, callId] = callCid.split(':');
-            console.log('Call details:', {
-              callId,
-              callType,
-              cid: callCid,
-              createdBy: event.call?.state?.createdBy
-            });
-            
-            // Get proper call instance from client
-            const call = videoClient.call(callType, callId);
-            setIncomingCall(call);
-          }
+        // Listen for incoming ringing calls
+        videoClient.on('call.ring', (ev) => {
+          const callCid = ev.call?.cid;
+          if (!callCid) return;
+          const [callType, callId] = callCid.split(':');
+          const call = videoClient.call(callType, callId);
+          // Lưu thêm thông tin caller name để modal hiển thị
+          const callerName = ev.call?.created_by?.name || 'Someone';
+          setIncomingCall({ ...call, callerName });
         });
+      } catch (e) {
+        console.error('❌ StreamVideo init error:', e);
+      }
+    })();
 
-        return () => {
-          console.log('🔌 Disconnecting video client');
-          videoClient.disconnectUser();
-        };
-      } catch (error) {
-        console.error('Error initializing video client:', error);
+    return () => {
+      mounted = false;
+      if (client) client.disconnectUser();
+    };
+  }, [currentUserId, currentUserName]);
+
+
+  // ==================== GLOBAL CLEANUP ON LOGOUT/AUTH CHANGE ====================
+  useEffect(() => {
+    const token = getToken();
+    // Khi không còn token (logout), cleanup tất cả call states
+    if (!token || !currentUserId) {
+      setIncomingCall(null);
+      setOutgoingCall(null);
+      setActiveCall(null);
+    }
+  }, [currentUserId]);
+
+  // ==================== GLOBAL CLEANUP ON PAGE UNLOAD ====================
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      // Cleanup any active call states before page unload
+      if (activeCall) {
+        try { await activeCall.leave(); } catch (e) { }
+      }
+      if (outgoingCall && client) {
+        try {
+          const call = client.call(outgoingCall.callType, outgoingCall.callId);
+          await call.endCall();
+        } catch (e) { }
+      }
+      if (incomingCall) {
+        try { await incomingCall.leave({ reject: true }); } catch (e) { }
       }
     };
 
-    initClient();
-  }, [authUser]);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [activeCall, outgoingCall, incomingCall, client]);
 
-  // Accept incoming call
-  const acceptCall = useCallback(async () => {
-    if (!incomingCall) {
-      console.log('No incoming call to accept');
+  // ==================== OUTGOING CALL LOGIC ====================
+  useEffect(() => {
+    if (!client || !outgoingCall) return;
+
+    const { callType, callId } = outgoingCall;
+    const call = client.call(callType, callId);
+
+    let hasJoined = false;
+
+    const timeout = setTimeout(async () => {
+      if (!hasJoined) {
+        try {
+          await call.endCall();
+        } catch (e) {
+          console.error('Error ending call on timeout:', e);
+        }
+        setOutgoingCall(null);
+        toast('Không có phản hồi, đã hủy cuộc gọi');
+      }
+    }, 60000);
+
+    const onParticipantJoined = () => {
+      if (hasJoined) return;
+      hasJoined = true;
+      clearTimeout(timeout);
+
+      call.join().then(() => {
+        setActiveCall(call);
+        setOutgoingCall(null);
+      }).catch(err => {
+        console.error('Caller auto-join failed', err);
+        setOutgoingCall(null);
+      });
+    };
+
+    const onParticipantLeft = (ev) => {
+      const userId = ev.participant?.user_id;
+      if (userId && userId !== client.user.id && !hasJoined) {
+        clearTimeout(timeout);
+        setOutgoingCall(null);
+        toast('Cuộc gọi bị từ chối');
+      }
+    };
+
+    const onCallEnded = () => {
+      clearTimeout(timeout);
+      setOutgoingCall(null);
+      setActiveCall(null);
+    };
+
+    call.on('call.session_participant_joined', onParticipantJoined);
+    call.on('call.session_participant_left', onParticipantLeft);
+    call.on('call.ended', onCallEnded);
+
+    return () => {
+      clearTimeout(timeout);
+      call.off('call.session_participant_joined', onParticipantJoined);
+      call.off('call.session_participant_left', onParticipantLeft);
+      call.off('call.ended', onCallEnded);
+    };
+  }, [client, outgoingCall]);
+
+  // ==================== INCOMING CALL LOGIC ====================
+  useEffect(() => {
+    if (!client || !incomingCall) return;
+
+    const timeout = setTimeout(async () => {
+      try {
+        await incomingCall.leave({ reject: true });
+      } catch (e) {
+        console.error('Error rejecting call on timeout:', e);
+      }
+      setIncomingCall(null);
+      toast('Cuộc gọi đến đã hết hạn');
+    }, 60000);
+
+    const onCallEnded = () => {
+      clearTimeout(timeout);
+      setIncomingCall(null);
+    };
+
+    incomingCall.on('call.ended', onCallEnded);
+
+    return () => {
+      clearTimeout(timeout);
+      incomingCall.off('call.ended', onCallEnded);
+    };
+  }, [client, incomingCall]);
+
+  // ==================== ACTIVE CALL LOGIC ====================
+  useEffect(() => {
+    if (!activeCall) return;
+
+    const onCallEnded = () => {
+      setActiveCall(null);
+      setIncomingCall(null);
+      setOutgoingCall(null);
+      toast('Cuộc gọi đã kết thúc');
+    };
+
+    const onParticipantLeft = (ev) => {
+      const userId = ev.participant?.user_id;
+      // Nếu người kia rời khỏi cuộc gọi, kết thúc call cho mình
+      if (userId && userId !== client?.user?.id) {
+        setActiveCall(null);
+        setIncomingCall(null);
+        setOutgoingCall(null);
+        toast('Người kia đã rời khỏi cuộc gọi');
+      }
+    };
+
+    activeCall.on('call.ended', onCallEnded);
+    activeCall.on('call.session_participant_left', onParticipantLeft);
+
+    return () => {
+      activeCall.off('call.ended', onCallEnded);
+      activeCall.off('call.session_participant_left', onParticipantLeft);
+    };
+  }, [activeCall, client]);
+
+  // ==================== ACTIONS ====================
+  const startCall = useCallback(({ callId, callType, receiverName, isAudioOnly = false }) => {
+    setOutgoingCall({ callId, callType, receiverName, isAudioOnly, startedAt: Date.now() });
+  }, []);
+
+  const cancelOutgoing = useCallback(async () => {
+    if (!client || !outgoingCall) {
+      setOutgoingCall(null);
       return;
     }
-
+    const call = client.call(outgoingCall.callType, outgoingCall.callId);
     try {
-      console.log('Accepting call:', incomingCall.id, 'type:', incomingCall.type);
-      
-      // Join the call
+      await call.endCall();
+    } catch (e) {
+      console.error('Error cancelling outgoing call:', e);
+    }
+    setOutgoingCall(null);
+  }, [client, outgoingCall]);
+
+  const acceptCall = useCallback(async () => {
+    if (!incomingCall) return;
+    try {
       await incomingCall.join();
-      console.log('Successfully joined call');
-      
-      // Kiểm tra xem có phải audio-only call không
-      const isAudioOnly = incomingCall.state?.custom?.isAudioOnly;
-      if (isAudioOnly) {
-        console.log('Audio-only call detected, disabling camera');
-        await incomingCall.camera.disable();
-      }
-      
       setActiveCall(incomingCall);
       setIncomingCall(null);
-      toast.success('Đã tham gia cuộc gọi');
-    } catch (error) {
-      console.error('Error accepting call:', error);
-      console.error('Error details:', error);
+      setOutgoingCall(null);
+    } catch (e) {
+      console.error('acceptCall error', e);
       toast.error('Không thể tham gia cuộc gọi');
     }
   }, [incomingCall]);
 
-  // Reject incoming call
   const rejectCall = useCallback(async () => {
     if (!incomingCall) {
-      console.log('No incoming call to reject');
+      setIncomingCall(null);
       return;
     }
-
     try {
-      console.log('Rejecting call:', incomingCall.id);
-      
-      // Reject the call
       await incomingCall.leave({ reject: true });
-      console.log('Call rejected successfully');
-      
-      setIncomingCall(null);
-      toast('Đã từ chối cuộc gọi');
-    } catch (error) {
-      console.error('Error rejecting call:', error);
-      console.error('Error details:', error);
-      toast.error('Không thể từ chối cuộc gọi');
-    }
+    } catch (e) { }
+    setIncomingCall(null);
   }, [incomingCall]);
 
-  // End active call
   const endCall = useCallback(async () => {
     if (!activeCall) return;
-
     try {
-      console.log('Ending call:', activeCall.id);
       await activeCall.leave();
-      setActiveCall(null);
-      toast('Cuộc gọi đã kết thúc');
-    } catch (error) {
-      console.error('Error ending call:', error);
-    }
+    } catch (e) { }
+    setActiveCall(null);
   }, [activeCall]);
-
-  // Monitor active call participants - auto end 1-1 calls when other person leaves
-  useEffect(() => {
-    if (!activeCall) return;
-
-    console.log('👥 Setting up participant monitoring for call:', activeCall.id);
-
-    // Lắng nghe khi có participant rời khỏi cuộc gọi
-    const handleParticipantLeft = (event) => {
-      console.log('Participant left:', event);
-      
-      // Đợi một chút rồi kiểm tra số lượng participants
-      setTimeout(() => {
-        const participants = activeCall.state.participants || [];
-        const activeParticipants = participants.filter(p => !p.left_at);
-        
-        console.log('Current active participants:', activeParticipants.length);
-        console.log('Participants:', activeParticipants.map(p => ({
-          id: p.user_id,
-          name: p.name,
-          left: !!p.left_at
-        })));
-
-        // Lấy tổng số members ban đầu của cuộc gọi
-        const totalMembers = activeCall.state?.members?.length || 2;
-        console.log('👥 Total members in call:', totalMembers);
-
-        // Logic: 
-        // - Cuộc gọi 1-1 (2 người): Kết thúc khi chỉ còn 1 người (người kia đã rời)
-        // - Cuộc gọi nhóm (>2 người): Chỉ kết thúc khi không còn ai (0 người)
-        const shouldEnd = totalMembers === 2 
-          ? activeParticipants.length <= 1  // 1-1: end when only 1 left
-          : activeParticipants.length === 0; // Group: end when no one left
-
-        if (shouldEnd) {
-          console.log('Call should end now');
-          if (totalMembers === 2) {
-            toast('Đối phương đã rời khỏi cuộc gọi');
-          } else {
-            toast('Cuộc gọi đã kết thúc');
-          }
-          endCall();
-        } else {
-          console.log('Call continues with', activeParticipants.length, 'participants');
-        }
-      }, 500); // Delay ngắn để state cập nhật
-    };
-
-    // Lắng nghe khi cuộc gọi kết thúc từ server
-    const handleCallEnded = (event) => {
-      console.log('Call ended from server:', event);
-      setActiveCall(null);
-      toast('Cuộc gọi đã kết thúc');
-    };
-
-    activeCall.on('call.session_participant_left', handleParticipantLeft);
-    activeCall.on('call.ended', handleCallEnded);
-
-    return () => {
-      activeCall.off('call.session_participant_left', handleParticipantLeft);
-      activeCall.off('call.ended', handleCallEnded);
-    };
-  }, [activeCall, endCall]);
 
   const value = {
     client,
     incomingCall,
+    outgoingCall,
     activeCall,
-    setActiveCall,
+    startCall,
+    cancelOutgoing,
     acceptCall,
     rejectCall,
     endCall,
+    setOutgoingCall,
+    setIncomingCall,
+    setActiveCall,
   };
 
   return <CallContext.Provider value={value}>{children}</CallContext.Provider>;
 };
+
+export default CallContext;
