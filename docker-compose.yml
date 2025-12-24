@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: it4409-fe-container
     ports:
-      - "42070:80"
+      - "42070:81"
     restart: unless-stopped
     environment:
       - NODE_ENV=production
