@@ -150,7 +150,7 @@ const ActiveCallModal = () => {
                     {/*<User className="w-4 h-4" />*/}
                     <span className="truncate">
                       {participantNames
-                        ? participantNames.split(', ').slice(0, -1).join(', ')
+                        ? participantNames.split(', ').slice(0, 0).join(', ')
                         : 'Connecting...'}
                     </span>
                   </p>
@@ -158,38 +158,21 @@ const ActiveCallModal = () => {
               </div>
             </div>
 
-            {/* Video Area */}
+                    
+            {!isAudioOnly ? ( 
+            <>
             <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
               <div className="w-full h-full max-w-7xl mx-auto p-4 pt-32 pb-32">
                 <div className="w-full h-full rounded-3xl overflow-hidden bg-black shadow-2xl border border-gray-700">
-                  <style>{`
-                    /* Ẩn tất cả avatar placeholders */
-                    .str-video__participant-view__avatar,
-                    [class*="avatar"],
-                    [class*="Avatar"],
-                    .str-video__participant-details,
-                    .str-video__participant-info {
-                      display: none !important;
-                    }
-                    
-                    /* Chỉ hiển thị video track */
-                    .str-video__video,
-                    video {
-                      width: 100% !important;
-                      height: 100% !important;
-                      object-fit: cover !important;
-                    }
-                    
-                    /* Ẩn participant name overlay */
-                    .str-video__participant-view__label,
-                    .str-video__participant-label {
-                      display: none !important;
-                    }
-                  `}</style>
                   <SpeakerLayout />
                 </div>
               </div>
             </div>
+            </>
+            ) : (
+              <></>
+            )}
+            
 
             {/* Controls */}
             <div className="absolute bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-6 pb-10">
