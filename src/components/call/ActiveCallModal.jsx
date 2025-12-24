@@ -1,7 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { StreamVideo, StreamCall, SpeakerLayout, useCallStateHooks } from '@stream-io/video-react-sdk';
+import { StreamVideo, StreamCall, ParticipantView, useCallStateHooks } from '@stream-io/video-react-sdk';
 import { X, Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MonitorUp, User } from 'lucide-react';
 import { useCall } from '../../contexts/CallContext';
+import { sanitizeUserId } from '../../lib/callHelpers';
+
+// Component pattern cho từng participant
+const ParticipantPattern = ({ participant, isCurrentUser, isAudioOnly }) => {
+  const participantName = participant.name || participant.userName || participant.userId || 'Unknown';
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Participant Info */}
+      <div className="bg-white/10 backdrop-blur-md rounded-xl px-4 py-2.5 border border-white/20">
+        <p className="text-white/90 text-sm font-medium flex items-center gap-2">
+          <User className="w-4 h-4" />
+          <span className="truncate">
+            {participantName} {isCurrentUser && '(You)'}
+          </span>
+        </p>
+      </div>
+
+      {/* Participant Video/Audio */}
+      {!isAudioOnly ? (
+        <div className="rounded-2xl overflow-hidden bg-black border border-gray-700 shadow-xl aspect-video">
+          <ParticipantView
+            participant={participant}
+            ParticipantViewUI={null}
+          />
+        </div>
+      ) : (
+        <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 shadow-xl aspect-video flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-2xl">
+              <User className="w-12 h-12 text-white" />
+            </div>
+            <p className="text-white/80 font-medium">{participantName}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ActiveCallModal = () => {
   const { client, activeCall, endCall } = useCall();
@@ -19,7 +58,6 @@ const ActiveCallModal = () => {
     const isAudio = activeCall.state?.custom?.isAudioOnly || false;
 
     if (isAudio) {
-      // Tắt camera cho audio call
       activeCall.camera.disable().catch(err => console.error('Error disabling camera:', err));
       setIsVideoOn(false);
     }
@@ -33,7 +71,7 @@ const ActiveCallModal = () => {
     return () => clearInterval(t);
   }, [activeCall]);
 
-  // leave when remote ends (call.ended handled in context too)
+  // leave when remote ends
   useEffect(() => {
     if (!activeCall) return;
     const onEnded = () => endCall();
@@ -59,7 +97,6 @@ const ActiveCallModal = () => {
   // cleanup on component unmount
   useEffect(() => {
     return () => {
-      // Nếu modal bị unmount mà vẫn còn activeCall, end nó
       if (activeCall) {
         endCall();
       }
@@ -69,40 +106,56 @@ const ActiveCallModal = () => {
   if (!activeCall || !client) return null;
 
   const formatDuration = (s) => {
-    const m = Math.floor(s / 60); const sec = s % 60; return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
   };
 
   const toggleMic = async () => {
-    try { if (isMicOn) await activeCall.microphone.disable(); else await activeCall.microphone.enable(); setIsMicOn(!isMicOn); } catch (e) { console.error(e); }
+    try {
+      if (isMicOn) await activeCall.microphone.disable();
+      else await activeCall.microphone.enable();
+      setIsMicOn(!isMicOn);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const toggleVideo = async () => {
-    // Không cho toggle camera nếu là audio call
     if (isAudioOnly) return;
-    try { if (isVideoOn) await activeCall.camera.disable(); else await activeCall.camera.enable(); setIsVideoOn(!isVideoOn); } catch (e) { console.error(e); }
-  };
-  const toggleScreen = async () => {
-    try { const isSharing = activeCall.state?.screenShare?.isLocalScreenShareEnabled; if (isSharing) await activeCall.screenShare.stopPublish(); else await activeCall.screenShare.startPublish(); } catch (e) { console.error(e); }
+    try {
+      if (isVideoOn) await activeCall.camera.disable();
+      else await activeCall.camera.enable();
+      setIsVideoOn(!isVideoOn);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  // Get participant names (exclude current user)
+  const toggleScreen = async () => {
+    try {
+      const isSharing = activeCall.state?.screenShare?.isLocalScreenShareEnabled;
+      if (isSharing) await activeCall.screenShare.stopPublish();
+      else await activeCall.screenShare.startPublish();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Get and sort participants - current user first
   const participants = activeCall.state?.participants || [];
   const currentUserId = client?.user?.id;
 
-  const participantNames = participants
-    .filter(p => {
-      console.log('Checking participant:', p, 'userId:', p.userId, 'currentUserId:', currentUserId);
-      return p.userId !== currentUserId;
-    })
-    .map(p => {
-      const name = p.name || p.userName || p.userId;
-      console.log('Participant name:', name, 'from:', p);
-      return name;
-    })
-    .filter(name => name)
-    .join(', ');
+  // Sort: current user first, then others
+  const sortedParticipants = [...participants].sort((a, b) => {
+    const aId = sanitizeUserId(a.userId || a.user_id || '');
+    const bId = sanitizeUserId(b.userId || b.user_id || '');
+    const currentSanitized = sanitizeUserId(currentUserId || '');
 
-  console.log('Final participant names:', participantNames);
+    if (aId === currentSanitized) return -1;
+    if (bId === currentSanitized) return 1;
+    return 0;
+  });
 
   return (
     <div className="fixed inset-0 z-[10000] bg-gray-900">
@@ -137,42 +190,34 @@ const ActiveCallModal = () => {
                 <button
                   onClick={endCall}
                   className="p-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full text-white transition-all duration-200 hover:scale-110"
-                  title="Minimize"
+                  title="End Call"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
+            </div>
 
-              {/* Participants info - Show full names */}
-              <div className="px-6 pb-4">
-                <div className="bg-white/10 backdrop-blur-md rounded-xl px-4 py-2.5 border border-white/20">
-                  <p className="text-white/90 text-sm font-medium flex items-center gap-2">
-                    {/*<User className="w-4 h-4" />*/}
-                    <span className="truncate">
-                      {participantNames
-                        ? participantNames.split(', ').slice(0, 0).join(', ')
-                        : 'Connecting...'}
-                    </span>
-                  </p>
+            {/* Participants Grid */}
+            <div className="flex-1 flex items-center justify-center p-6 pt-32 pb-32">
+              <div className="w-full max-w-7xl mx-auto">
+                <div className={`grid gap-6 ${sortedParticipants.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' : 'grid-cols-2'}`}>
+                  {sortedParticipants.slice(1).map((participant) => {
+                    const participantId = sanitizeUserId(participant.userId || participant.user_id || '');
+                    const currentSanitized = sanitizeUserId(currentUserId || '');
+                    const isCurrentUser = participantId === currentSanitized;
+
+                    return (
+                      <ParticipantPattern
+                        key={participant.sessionId || participant.userId}
+                        participant={participant}
+                        isCurrentUser={isCurrentUser}
+                        isAudioOnly={isAudioOnly}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             </div>
-
-                    
-            {!isAudioOnly ? ( 
-            <>
-            <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-              <div className="w-full h-full max-w-7xl mx-auto p-4 pt-32 pb-32">
-                <div className="w-full h-full rounded-3xl overflow-hidden bg-black shadow-2xl border border-gray-700">
-                  <SpeakerLayout />
-                </div>
-              </div>
-            </div>
-            </>
-            ) : (
-              <></>
-            )}
-            
 
             {/* Controls */}
             <div className="absolute bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-6 pb-10">
@@ -185,8 +230,8 @@ const ActiveCallModal = () => {
                       <button
                         onClick={toggleMic}
                         className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg ${isMicOn
-                          ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                          : 'bg-red-500 hover:bg-red-600 text-white'
+                            ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                            : 'bg-red-500 hover:bg-red-600 text-white'
                           }`}
                         title={isMicOn ? 'Mute' : 'Unmute'}
                       >
@@ -197,14 +242,14 @@ const ActiveCallModal = () => {
                       </span>
                     </div>
 
-                    {/* Camera Button (only for video calls) */}
+                    {/* Camera Button */}
                     {!isAudioOnly && (
                       <div className="flex flex-col items-center gap-2">
                         <button
                           onClick={toggleVideo}
                           className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg ${isVideoOn
-                            ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                            : 'bg-red-500 hover:bg-red-600 text-white'
+                              ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                              : 'bg-red-500 hover:bg-red-600 text-white'
                             }`}
                           title={isVideoOn ? 'Stop Video' : 'Start Video'}
                         >
@@ -216,22 +261,27 @@ const ActiveCallModal = () => {
                       </div>
                     )}
 
+                    
+
                     {/* End Call Button */}
                     <div className="flex flex-col items-center gap-2">
                       <button
                         onClick={endCall}
-                        className="w-16 h-16 rounded-full flex items-center justify-center bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white transition-all duration-200 hover:scale-110 shadow-lg"
+                        className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-2xl"
                         title="End Call"
                       >
                         <PhoneOff className="w-7 h-7" />
                       </button>
-                      <span className="text-red-400 text-xs font-medium">End</span>
+                      <span className="text-white/70 text-xs font-medium">
+                        End
+                      </span>
                     </div>
 
                   </div>
                 </div>
               </div>
             </div>
+
           </div>
         </StreamCall>
       </StreamVideo>
