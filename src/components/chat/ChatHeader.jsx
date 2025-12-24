@@ -13,7 +13,7 @@ import toast from "react-hot-toast";
 const ChatHeader = ({ close, message, toggleSidebar }) => {
   const { selectedConversation, conversations } = useConversationStore();
   const { authUser } = useAuthStore();
-  const { initClient, setOutgoingCall } = useCall();
+  const { client, startCall, setOutgoingCall } = useCall();
   const [isInitializing, setIsInitializing] = useState(false);
 
   const currentConversation = useMemo(() => {
@@ -29,63 +29,74 @@ const ChatHeader = ({ close, message, toggleSidebar }) => {
   const handleStartCall = async (isAudioOnly = false) => {
     const currentUserId = getUserIdFromToken();
     if (!currentConversation || !currentUserId) return;
-    
+
+    // Check if client exists
+    if (!client) {
+      toast.error('Vui lòng đợi kết nối...');
+      return;
+    }
+    let currentUserName = authUser?.userName;
+    if (!currentUserName) {
+      console.log('Fetching userName from API...');
+      currentUserName = await getUserName(currentUserId);
+      console.log('Fetched userName:', currentUserName);
+    }
+
     try {
       setIsInitializing(true);
       const loadingToast = toast.loading("Đang kết nối...");
-    
-      // 1. Khởi tạo client cho chính mình
-      const videoClient = await initClient();
-    
+
       const conversationId = currentConversation.id || currentConversation._id;
       const callParticipants = getCallParticipants(currentConversation, currentUserId);
-    
+
       if (callParticipants.length === 0) {
         toast.dismiss(loadingToast);
         toast.error("Không tìm thấy người nhận");
         return;
       }
-    
-      // 2. KÍCH HOẠT USER NGƯỜI NHẬN (QUAN TRỌNG)
-      // Việc gọi getStreamToken cho người nhận giúp Backend thực hiện lệnh userClient.CreateToken() 
-      // cho họ, từ đó Stream SDK mới nhận diện được các ID này tồn tại.
+
+      // Generate tokens for all participants (creates users on Stream)
       try {
         await Promise.all(
-          callParticipants.map(p => getStreamToken(p.userId).catch(e => console.error("Kích hoạt user lỗi:", e)))
+          callParticipants.map(p => getStreamToken(p.userId).catch(e => console.error("Token generation error:", e)))
         );
       } catch (e) {
-        console.warn("Một số user chưa được kích hoạt trên Stream");
+        console.warn("Some users not activated on Stream");
       }
-    
+
       const sanitizedUserId = sanitizeUserId(currentUserId);
       const memberUserIds = [
         sanitizedUserId,
         ...callParticipants.map(p => sanitizeUserId(p.userId))
       ];
-    
+
       const callId = generateCallId(conversationId);
-      const call = videoClient.call('default', callId);
-    
-      setOutgoingCall({
-        receiverName: callParticipants[0]?.name || 'Người dùng',
-        isAudioOnly,
-        callId,
-        callType: 'default',
-      });
-    
-      // 3. Tạo cuộc gọi
-      // Chúng ta thêm 'create: true' để đảm bảo cuộc gọi được khởi tạo
+      const call = client.call('default', callId);
+
+      // Create and join the call
       await call.getOrCreate({
         ring: true,
         data: {
           members: memberUserIds.map(id => ({ user_id: id, role: 'call_member' })),
-          custom: { 
-            isAudioOnly, 
-            callerName: authUser?.userName || "Ai đó" 
+          custom: {
+            isAudioOnly,
+            callerName: currentUserName,
           }
         },
       });
-    
+
+      // Join as caller
+      await call.join();
+
+      // Set outgoing call state with call object
+      startCall({
+        receiverName: callParticipants[0]?.name || 'Người dùng',
+        isAudioOnly,
+        callId,
+        callType: 'default',
+        call,
+      });
+
       toast.dismiss(loadingToast);
       toast.success("Đang đổ chuông...");
     } catch (error) {

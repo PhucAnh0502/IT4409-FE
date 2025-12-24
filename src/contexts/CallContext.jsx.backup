@@ -1,0 +1,297 @@
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { StreamVideoClient } from '@stream-io/video-react-sdk';
+import { getStreamToken } from '../lib/tokenService';
+import { sanitizeUserId } from '../lib/callHelpers';
+import { getUserIdFromToken, getToken } from '../lib/utils';
+import { getUserName } from '../lib/userService';
+import toast from 'react-hot-toast';
+
+const CallContext = createContext(null);
+
+export const useCall = () => {
+  const ctx = useContext(CallContext);
+  if (!ctx) throw new Error('useCall must be used within CallProvider');
+  return ctx;
+};
+
+export const CallProvider = ({ children }) => {
+  const [client, setClient] = useState(null);
+  const [incomingCall, setIncomingCall] = useState(null);
+  const [outgoingCall, setOutgoingCall] = useState(null);
+  const [activeCall, setActiveCall] = useState(null);
+
+  const currentUserId = getUserIdFromToken();
+
+  // AUTO-INITIALIZE CLIENT when user logs in
+  useEffect(() => {
+    console.log('CallContext useEffect triggered, currentUserId:', currentUserId);
+
+    if (!currentUserId) {
+      console.log('No userId, skipping client initialization');
+      return;
+    }
+
+    if (client) {
+      console.log('Client already exists, skipping initialization');
+      return;
+    }
+
+    const authToken = getToken();
+    if (!authToken) {
+      console.log('No auth token, skipping initialization');
+      return;
+    }
+
+    let mounted = true;
+
+    (async () => {
+      try {
+        console.log('Starting client initialization for userId:', currentUserId);
+
+        const apiKey = import.meta.env.VITE_GETSTREAM_API_KEY;
+        if (!apiKey) {
+          console.error('VITE_GETSTREAM_API_KEY not found in .env');
+          return;
+        }
+        console.log('API Key found');
+
+        console.log('Requesting Stream token...');
+        const streamToken = await getStreamToken(currentUserId);
+        if (!streamToken) {
+          console.error('Failed to get Stream token');
+          return;
+        }
+        console.log('Stream token received, length:', streamToken.length);
+
+        console.log('Fetching username from API...');
+        const userName = await getUserName(currentUserId);
+        console.log('Username fetched:', userName);
+
+        const sanitized = sanitizeUserId(currentUserId);
+        console.log('Creating StreamVideoClient with userId:', sanitized, 'name:', userName);
+
+        const videoClient = new StreamVideoClient({
+          apiKey,
+          user: {
+            id: sanitized,
+            name: userName || sanitized,
+          },
+          token: streamToken,
+        });
+
+        console.log('StreamVideoClient created successfully');
+
+        // Listen for incoming calls
+        videoClient.on('call.ring', (event) => {
+          console.log('INCOMING CALL EVENT:', event);
+
+          const callData = event.call;
+          if (!callData || !callData.cid) {
+            console.error('Invalid call data in ring event');
+            return;
+          }
+
+          const [callType, callId] = callData.cid.split(':');
+          const call = videoClient.call(callType, callId);
+
+          const callerName = callData.custom?.callerName || callData.created_by?.name || 'Someone';
+          const isAudioOnly = callData.custom?.isAudioOnly || false;
+
+          console.log('Setting incoming call:', {
+            callType,
+            callId,
+            callerName,
+            isAudioOnly
+          });
+
+          setIncomingCall({
+            call,
+            callerName,
+            isAudioOnly,
+            receivedAt: Date.now()
+          });
+        });
+
+        // Listen for global call end
+        videoClient.on('call.ended', (event) => {
+          console.log('CALL ENDED EVENT:', event);
+          setIncomingCall(null);
+          setOutgoingCall(null);
+          setActiveCall(null);
+        });
+
+        if (!mounted) {
+          console.log('Component unmounted, not setting client');
+          return;
+        }
+
+        setClient(videoClient);
+        console.log('Client set in state - INITIALIZATION COMPLETE');
+
+      } catch (error) {
+        console.error('Error initializing client:', error);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      if (client) {
+        client.disconnectUser().catch(e => console.error('Disconnect error:', e));
+      }
+    };
+  }, [currentUserId]);
+
+  // Auto-timeout for outgoing call (60 seconds)
+  useEffect(() => {
+    if (!outgoingCall) return;
+
+    const timeout = setTimeout(() => {
+      console.log('Outgoing call timeout after 60s');
+      cancelOutgoing();
+      toast.error('Không có phản hồi từ người nhận');
+    }, 60000);
+
+    return () => clearTimeout(timeout);
+  }, [outgoingCall]);
+
+  // Auto-timeout for incoming call (60 seconds)
+  useEffect(() => {
+    if (!incomingCall) return;
+
+    const timeout = setTimeout(() => {
+      console.log('Incoming call timeout after 60s');
+      rejectCall();
+    }, 60000);
+
+    return () => clearTimeout(timeout);
+  }, [incomingCall]);
+
+  // Listen for outgoing call events
+  useEffect(() => {
+    if (!outgoingCall?.call || !client) return;
+
+    const call = outgoingCall.call;
+    console.log('Setting up event listeners for outgoing call');
+
+    const handleParticipantJoined = (event) => {
+      console.log('Participant joined event:', event);
+      const participantId = event.participant?.user_id || event.participant?.userId;
+      const currentUserId = client.user?.id;
+
+      if (participantId && participantId !== currentUserId) {
+        console.log('Receiver joined! Transitioning to active call');
+        setActiveCall(call);
+        setOutgoingCall(null);
+        toast.success('Đã kết nối');
+      }
+    };
+
+    const handleEnded = () => {
+      console.log('Outgoing call ended');
+      setOutgoingCall(null);
+    };
+
+    // Only listen to these reliable events
+    call.on('call.session_participant_joined', handleParticipantJoined);
+    call.on('call.ended', handleEnded);
+
+    return () => {
+      call.off('call.session_participant_joined', handleParticipantJoined);
+      call.off('call.ended', handleEnded);
+    };
+  }, [outgoingCall, client]);
+
+  // Cleanup on page unload/refresh
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      if (activeCall) {
+        try {
+          await activeCall.leave();
+        } catch (e) {
+          console.error('Error leaving call on unload:', e);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [activeCall]);
+
+  const startCall = useCallback(({ callId, callType, receiverName, isAudioOnly = false, call }) => {
+    console.log('Starting call with call object:', { callId, callType, receiverName, hasCall: !!call });
+    setOutgoingCall({ callId, callType, receiverName, isAudioOnly, call, startedAt: Date.now() });
+  }, []);
+
+  const cancelOutgoing = useCallback(async () => {
+    if (!client || !outgoingCall) {
+      setOutgoingCall(null);
+      return;
+    }
+    const call = outgoingCall.call || client.call(outgoingCall.callType, outgoingCall.callId);
+    try {
+      await call.endCall();
+    } catch (e) {
+      console.error('Error ending call:', e);
+    }
+    setOutgoingCall(null);
+  }, [client, outgoingCall]);
+
+  const acceptCall = useCallback(async () => {
+    if (!incomingCall?.call) {
+      console.error('No call to accept');
+      return;
+    }
+    try {
+      console.log('Accepting and joining call...');
+      // IMPORTANT: Must call join() for ringing calls (not accept())
+      await incomingCall.call.join();
+      console.log('Call joined successfully');
+      setActiveCall(incomingCall.call);
+      setIncomingCall(null);
+      toast.success('Đã tham gia cuộc gọi');
+    } catch (e) {
+      console.error('Error accepting call:', e);
+      toast.error('Không thể tham gia cuộc gọi');
+    }
+  }, [incomingCall]);
+
+  const rejectCall = useCallback(async () => {
+    if (!incomingCall?.call) return;
+    try {
+      await incomingCall.call.reject();
+    } catch (e) {
+      console.error('Error rejecting call:', e);
+    }
+    setIncomingCall(null);
+  }, [incomingCall]);
+
+  const endCall = useCallback(async () => {
+    if (!activeCall) return;
+    try {
+      await activeCall.leave();
+      console.log('Call ended successfully');
+    } catch (e) {
+      console.error('Error ending call:', e);
+    }
+    setActiveCall(null);
+  }, [activeCall]);
+
+  const value = {
+    client,
+    incomingCall,
+    outgoingCall,
+    activeCall,
+    startCall,
+    cancelOutgoing,
+    acceptCall,
+    rejectCall,
+    endCall,
+    setOutgoingCall,
+    setIncomingCall,
+    setActiveCall,
+  };
+
+  return <CallContext.Provider value={value}>{children}</CallContext.Provider>;
+};
+
+export default CallContext;
