@@ -66,7 +66,10 @@ const AddFriendModal = ({ isOpen, onClose }) => {
             fetchData();
         }
     }, [isOpen]);
+    //in ra friend list
+    console.log(friends);
     const friendIds = new Set(friends.map(f => f.friendUserId));
+    console.log(friendIds);
 
     const fetchSuggestedUsers = async () => {
         setIsLoading(true);
@@ -261,7 +264,13 @@ const AddFriendModal = ({ isOpen, onClose }) => {
                                                                 rows={2}
                                                                 maxLength={200}
                                                             />
-                                                            <div className="text-right">
+                                                            <div className="flex items-center justify-between mt-2">
+                                                                <button
+                                                                    onClick={() => setExpandedUserId(null)}
+                                                                    className="text-[13px] text-[#65676B] hover:text-[#050505] font-medium transition-colors"
+                                                                >
+                                                                    Cancel
+                                                                </button>
                                                                 <span className="text-[12px] text-[#65676B]">
                                                                     {(userMessages[user.id] || '').length}/200
                                                                 </span>
