@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, ChevronDown } from 'lucide-react';
+import { X, Search, ChevronDown, Mail, User, Phone, Calendar, Users } from 'lucide-react';
 import { useUserStore } from '../../../stores/useUserStore.js';
 import { useFriendStore } from '../../../stores/useFriendStore.js';
 import { getUserIdFromToken } from '../../../lib/utils.js';
@@ -13,7 +13,8 @@ const AddFriendModal = ({ isOpen, onClose }) => {
     const [hasSentRequests, setHasSentRequests] = useState(false);
     const [expandedUserId, setExpandedUserId] = useState(null);
     const [userMessages, setUserMessages] = useState({});
-    const { getAllUsers } = useUserStore();
+    const [selectedUser, setSelectedUser] = useState(null);
+    const { getAllUsers, getUserById } = useUserStore();
     const { sendFriendRequest, getSentRequests } = useFriendStore();
     const { friends, getFriendsList } = useFriendStore()
 
@@ -163,6 +164,18 @@ const AddFriendModal = ({ isOpen, onClose }) => {
         setUserMessages(prev => ({ ...prev, [userId]: message }));
     };
 
+    const handleUserClick = async (user) => {
+        try {
+            // Fetch full user details
+            const fullUserData = await getUserById(user.id);
+            setSelectedUser(fullUserData);
+        } catch (error) {
+            console.error('Failed to fetch user details:', error);
+            // Fallback to basic user data
+            setSelectedUser(user);
+        }
+    };
+
     const handleClose = async () => {
         if (hasSentRequests) {
             await getSentRequests();
@@ -221,7 +234,10 @@ const AddFriendModal = ({ isOpen, onClose }) => {
                                         <div key={user.id} className="flex flex-col">
                                             <div className="flex items-center justify-between p-2 hover:bg-[#F2F2F2] rounded-lg transition-colors group">
                                                 {/* User Info */}
-                                                <div className="flex items-center gap-3">
+                                                <div
+                                                    className="flex items-center gap-3 cursor-pointer"
+                                                    onClick={() => handleUserClick(user)}
+                                                >
                                                     <img
                                                         src={user.avatarUrl}
                                                         alt={user.name}
@@ -292,6 +308,124 @@ const AddFriendModal = ({ isOpen, onClose }) => {
                         )}
                     </div>
                 </div>
+
+                {/* Side Panel for User Details */}
+                {selectedUser && (
+                    <>
+                        {/* Overlay */}
+                        <div
+                            className="fixed inset-0 bg-black/30 z-40"
+                            onClick={() => setSelectedUser(null)}
+                        />
+
+                        {/* Side Panel */}
+                        <div className="fixed right-0 top-0 h-full w-[400px] bg-white shadow-2xl z-50 overflow-y-auto animate-in slide-in-from-right duration-300">
+                            {/* Header */}
+                            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+                                <h3 className="text-[18px] font-semibold text-[#050505]">User Profile</h3>
+                                <button
+                                    onClick={() => setSelectedUser(null)}
+                                    className="w-8 h-8 flex items-center justify-center bg-[#E4E6EB] hover:bg-[#D8DADF] rounded-full transition-colors"
+                                >
+                                    <X size={18} className="text-[#050505]" />
+                                </button>
+                            </div>
+
+                            {/* Content */}
+                            <div className="px-6 py-6 space-y-4">
+                                {/* Avatar and Name Section */}
+                                <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
+                                    <img
+                                        src={selectedUser.avatarUrl}
+                                        alt={selectedUser.name}
+                                        className="w-20 h-20 rounded-full object-cover border-2 border-primary/20"
+                                    />
+                                    <div className="flex-1">
+                                        <div className="flex flex-col gap-1">
+                                            <h2 className="text-[20px] font-semibold text-[#050505]">
+                                                {selectedUser.fullName || selectedUser.name}
+                                            </h2>
+                                            {/* Mutual Friends Count */}
+                                            <div className="flex items-center gap-2 text-[14px] text-[#65676B]">
+                                                <Users size={16} className="text-primary" />
+                                                <span>0 mutual friends</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* User Details - Single Column */}
+                                <div className="space-y-3">
+                                    {/* Email */}
+                                    {selectedUser.email && (
+                                        <div className="bg-[#F0F2F5] rounded-lg p-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                    <Mail size={20} className="text-primary" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[12px] font-semibold text-[#65676B] mb-1">Email Address</p>
+                                                    <p className="text-[14px] text-[#050505] break-all">{selectedUser.email || 'Not provided'}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Phone */}
+                                    {selectedUser.phone && (
+                                        <div className="bg-[#F0F2F5] rounded-lg p-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                    <Phone size={20} className="text-primary" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[12px] font-semibold text-[#65676B] mb-1">Phone Number</p>
+                                                    <p className="text-[14px] text-[#050505]">{selectedUser.phone || 'Not provided'}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Username */}
+                                    {selectedUser.userName && (
+                                        <div className="bg-[#F0F2F5] rounded-lg p-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                    <User size={20} className="text-primary" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[12px] font-semibold text-[#65676B] mb-1">Username</p>
+                                                    <p className="text-[14px] text-[#050505]">@{selectedUser.userName || selectedUser.name}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Member Since */}
+                                    {selectedUser.createdAt && (
+                                        <div className="bg-[#F0F2F5] rounded-lg p-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                    <Calendar size={20} className="text-primary" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[12px] font-semibold text-[#65676B] mb-1">Member Since</p>
+                                                    <p className="text-[14px] text-[#050505]">
+                                                        {new Date(selectedUser.createdAt).toLocaleDateString('en-US', {
+                                                            year: 'numeric',
+                                                            month: 'long',
+                                                            day: 'numeric'
+                                                        })}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );
