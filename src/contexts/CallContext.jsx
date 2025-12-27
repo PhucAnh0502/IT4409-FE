@@ -48,13 +48,13 @@ export const CallProvider = ({ children }) => {
     (async () => {
       try {
         const sanitized = sanitizeUserId(currentUserId);
-        console.log('Getting Stream token for:', sanitized);
+        //console.log('Getting Stream token for:', sanitized);
 
         const streamToken = await getStreamToken(currentUserId);
 
-        console.log('Stream token received');
-        console.log('Stream token type:', typeof streamToken);
-        console.log('Stream token length:', streamToken?.length);
+        //console.log('Stream token received');
+        //console.log('Stream token type:', typeof streamToken);
+        //console.log('Stream token length:', streamToken?.length);
 
         if (!streamToken) {
           console.error('Stream token is null or undefined');
@@ -62,7 +62,7 @@ export const CallProvider = ({ children }) => {
         }
 
         const apiKey = import.meta.env.VITE_GETSTREAM_API_KEY;
-        console.log('GetStream API Key from .env:', apiKey ? 'Present' : 'MISSING');
+        //console.log('GetStream API Key from .env:', apiKey ? 'Present' : 'MISSING');
 
         if (!apiKey) {
           console.error('VITE_GETSTREAM_API_KEY is not defined in .env');
@@ -70,20 +70,20 @@ export const CallProvider = ({ children }) => {
           return;
         }
 
-        console.log('Fetching userName from API for userId:', currentUserId);
+        //console.log('Fetching userName from API for userId:', currentUserId);
         let userName = authUser?.userName;
-        if (!userName) {
-          console.log('👤 Fetching userName from API for userId:', currentUserId);
-          userName = await getUserName(currentUserId);
-          console.log('✅ Fetched userName:', userName);
-        }
+        //if (!userName) {
+        //  console.log('👤 Fetching userName from API for userId:', currentUserId);
+        //  userName = await getUserName(currentUserId);
+        //  console.log('✅ Fetched userName:', userName);
+        //}
 
-        console.log('Creating StreamVideoClient with:', {
-          apiKey: apiKey.substring(0, 10) + '...',
-          userId: sanitized,
-          userName: userName || sanitized,
-          tokenLength: streamToken.length
-        });
+       //console.log('Creating StreamVideoClient with:', {
+       //  apiKey: apiKey.substring(0, 10) + '...',
+       //  userId: sanitized,
+       //  userName: userName || sanitized,
+       //  tokenLength: streamToken.length
+       //});
 
         const videoClient = new StreamVideoClient({
           apiKey,
@@ -185,13 +185,13 @@ export const CallProvider = ({ children }) => {
       //console.log('=== PARTICIPANT JOINED (Outgoing Call) ===');
       //console.log('Event:', ev);
       //console.log('Participant:', ev.participant);
-//
+      //
       //const participantUserId = ev.participant?.userId;
       //const currentUserSanitized = client.userId;
-//
+      //
       //// Sanitize for comparison
       //const sanitizedParticipantId = participantUserId ? sanitizeUserId(participantUserId) : null;
-//
+      //
       //console.log('Participant ID (sanitized):', sanitizedParticipantId);
       //console.log('Current User ID:', currentUserSanitized);
       //console.log('Are different?:', sanitizedParticipantId !== currentUserSanitized);
@@ -216,7 +216,7 @@ export const CallProvider = ({ children }) => {
       //  console.log('>>> RECEIVER JOINED! Auto-joining as caller...');
       //  hasJoined = true;
       //  clearTimeout(timeout);
-//
+      //
       //  call.join().then(() => {
       //    console.log('Caller joined successfully');
       //    setActiveCall(call);
@@ -236,7 +236,7 @@ export const CallProvider = ({ children }) => {
       //const userId = ev.participant?.user_id;
       //const sanitizedUserId = userId ? sanitizeUserId(userId) : null;
       //const currentUserSanitized = client.user?.id;
-//
+      //
       //if (sanitizedUserId && sanitizedUserId !== currentUserSanitized && !hasJoined) {
       //  clearTimeout(timeout);
       //  setOutgoingCall(null);

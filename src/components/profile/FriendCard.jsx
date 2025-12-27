@@ -47,7 +47,7 @@ const FriendCard = ({ friend, size = "small" }) => {
       </p>
       {friend.friendedBy !== undefined && friend.friendedBy !== null && (
         <p className="text-xs text-base-content/50 truncate w-full px-1">
-          {friend.friendedBy} mutual {friend.friendedBy === 1 ? 'friend' : 'friends'}
+          {friend.friendedBy} mutual {friend.friendedBy.length === 1 ? 'friend' : 'friends'}
         </p>
       )}
     </div>
