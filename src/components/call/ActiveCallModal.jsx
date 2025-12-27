@@ -57,36 +57,58 @@ const ParticipantPattern = ({ participant, isCurrentUser, isAudioOnly }) => {
   }, [participantId, isCurrentUser, getUserById]); // dependencies quan trọng
 
 
+
+  // Detect if participant is speaking
+  const isSpeaking = participant?.isSpeaking || false;
+  const audioLevel = participant?.audioLevel || 0;
+
+  // Dynamic border color based on speaking state
+  const borderClass = isSpeaking
+    ? 'border-green-400 shadow-[0_0_20px_rgba(74,222,128,0.6)] animate-pulse'
+    : 'border-gray-700';
+
   return (
     <div className="flex flex-col gap-3">
       {/* Participant Info */}
-      <div className="bg-white/10 backdrop-blur-md rounded-xl px-4 py-2.5 border border-white/20">
+      <div className={`bg-white/10 backdrop-blur-md rounded-xl px-4 py-2.5 border transition-all duration-300 ${isSpeaking ? 'border-green-400' : 'border-white/20'}`}>
         <p className="text-white/90 text-sm font-medium flex items-center gap-2">
           <span className="truncate">
             {isLoadingUser ? 'Loading...' : displayName}
             {/* {isCurrentUser && " (You)"} */}
           </span>
+          {isSpeaking && (
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+            </span>
+          )}
         </p>
       </div>
 
       {/* Participant Video/Audio */}
       {!isAudioOnly ? (
-        <div className="rounded-2xl overflow-hidden bg-black border border-gray-700 shadow-xl aspect-video">
+        <div className={`rounded-2xl overflow-hidden bg-black border-2 shadow-xl aspect-video transition-all duration-300 ${borderClass}`}>
           <ParticipantView
             participant={participant}
             ParticipantViewUI={null}
           />
         </div>
       ) : (
-        <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 shadow-xl aspect-video flex items-center justify-center">
+        <div className={`rounded-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 border-2 shadow-xl aspect-video flex items-center justify-center transition-all duration-300 ${borderClass}`}>
           <div className="flex flex-col items-center gap-4">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-2xl">
+            <div className={`w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-2xl transition-all duration-300 ${isSpeaking ? 'scale-110 shadow-[0_0_30px_rgba(74,222,128,0.5)]' : ''}`}>
               <User className="w-12 h-12 text-white" />
             </div>
             <p className="text-white/80 font-medium">
               {isLoadingUser ? 'Loading...' : displayName}
               {/* {isCurrentUser && " (You)"} */}
             </p>
+            {isSpeaking && (
+              <div className="flex gap-1">
+                <span className="w-1 h-4 bg-green-400 rounded-full animate-pulse"></span>
+                <span className="w-1 h-4 bg-green-400 rounded-full animate-pulse delay-75"></span>
+                <span className="w-1 h-4 bg-green-400 rounded-full animate-pulse delay-150"></span>
+              </div>
+            )}
           </div>
         </div>
       )}
