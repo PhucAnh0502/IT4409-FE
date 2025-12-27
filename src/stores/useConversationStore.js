@@ -68,6 +68,28 @@ export const useConversationStore = create((set, get) => ({
         }
     },
 
+    randomConversation: async () => {
+        set({ isCreatingConversation: true });
+        try {
+            const response = await authAxiosInstance.post(API.CONVERSATION.RANDOM);
+            const newConversation = {...response, lastMessageTime: new Date().toISOString() };
+
+        const currentConversations = get().conversations || [];
+        const newConvId = newConversation?.conversationId || newConversation?.id;
+        set({ 
+            conversations: [newConversation, ...currentConversations],
+            selectedConversation: newConvId
+        });
+
+        return newConversation;
+        } catch (error) {
+            toast.error(error?.message || "Error creating conversation");
+            throw error;
+        } finally {
+            set({ isCreatingConversation: false });
+        }
+    },
+
     // Message APIs
     getMessages: async (conversationId) => {
         if (!conversationId) {
@@ -154,8 +176,43 @@ export const useConversationStore = create((set, get) => ({
         } catch (error) {
             toast.error(error?.message || "Failed to send message");
         }
-    }
-,
+    },
+
+    reactMessage: async (data) => {
+        try {
+            await authAxiosInstance.post(API.MESSAGE.REACT_MESSAGE, data);
+        } catch (error) {
+            toast.error(error?.message || "Failed to react to message");
+        }    
+    },
+
+    updateMessageReaction: (payload) => {
+        const  { messageId, reactionType, userId, action } = payload;
+        set((state) => ({
+            messages: state.messages.map((msg) => {
+                if (msg.id !== messageId) return msg;
+
+                let updatedReactions = [...(msg.reactions || [])];
+
+                if (action === "Removed") {
+                    updatedReactions = updatedReactions.filter(r => r.userId !== userId);
+                } 
+                else if (action === "Updated") {
+                    updatedReactions = updatedReactions.map(r => 
+                        r.userId === userId ? { ...r, reactionType } : r
+                    );
+                } 
+                else if (action === "Added") {
+                    const exists = updatedReactions.find(r => r.userId === userId);
+                    if (!exists) {
+                        updatedReactions.push({ userId, reactionType });
+                    }
+                }
+
+                return { ...msg, reactions: updatedReactions };
+            })
+        }))
+    },
 
     setSelectedConversation: (conversationId) => {
         set({ selectedConversation: conversationId });

@@ -26,10 +26,12 @@ export const API = {
         UPDATE_GROUP_INFO: (conversationId) => `/Conversation/${conversationId}/group/name`,
         UPDATE_GROUP_AVATAR: (conversationId) => `/Conversation/${conversationId}/group/avatar`,
         MARK_AS_READ: (conversationId) => `/Conversation/${conversationId}/read`,
+        RANDOM: '/Conversation/random',
     },
     MESSAGE: {
         ALL_MESSAGES: (conversationId) => `/Messages/${conversationId}`,
         SEND_MESSAGE: '/Messages',
+        REACT_MESSAGE: '/Messages/react',
     },
     FRIEND: {
         SEND_REQUEST: '/Friend/requests',

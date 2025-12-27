@@ -3,6 +3,7 @@ import { X, Search, ChevronDown, Mail, User, Phone, Calendar, Users } from 'luci
 import { useUserStore } from '../../../stores/useUserStore.js';
 import { useFriendStore } from '../../../stores/useFriendStore.js';
 import { getUserIdFromToken } from '../../../lib/utils.js';
+import { createPortal } from 'react-dom';
 
 const AddFriendModal = ({ isOpen, onClose }) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -183,7 +184,7 @@ const AddFriendModal = ({ isOpen, onClose }) => {
         onClose();
     };
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={handleClose}>
             <div
                 className="bg-white rounded-2xl shadow-2xl w-full max-w-[500px] flex flex-col md:max-h-[80vh] max-h-[90vh]"
@@ -345,11 +346,6 @@ const AddFriendModal = ({ isOpen, onClose }) => {
                                             <h2 className="text-[20px] font-semibold text-[#050505]">
                                                 {selectedUser.fullName || selectedUser.name}
                                             </h2>
-                                            {/* Mutual Friends Count */}
-                                            <div className="flex items-center gap-2 text-[14px] text-[#65676B]">
-                                                <Users size={16} className="text-primary" />
-                                                <span>0 mutual friends</span>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -427,7 +423,8 @@ const AddFriendModal = ({ isOpen, onClose }) => {
                     </>
                 )}
             </div>
-        </div>
+        </div>,
+        document.getElementById('root')
     );
 };
 

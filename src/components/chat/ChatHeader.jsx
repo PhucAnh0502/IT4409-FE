@@ -13,18 +13,19 @@ import toast from "react-hot-toast";
 const ChatHeader = ({ close, message, toggleSidebar }) => {
   const { selectedConversation, conversations } = useConversationStore();
   const { authUser } = useAuthStore();
-  const { client, startCall, setOutgoingCall } = useCall();
+  const { client, startCall } = useCall();
   const [isInitializing, setIsInitializing] = useState(false);
 
   const currentConversation = useMemo(() => {
     if (!selectedConversation || !conversations) return null;
     return conversations.find(
-      (conv) => conv?.id === selectedConversation || conv?._id === selectedConversation
+      (conv) => conv?.id === selectedConversation 
     );
   }, [selectedConversation, conversations]);
 
-  const conversationName = currentConversation?.name || "Conversation";
-  const avatarUrl = currentConversation?.avatarUrl || message?.receiverAvatarUrl || "/default-avatar.png";
+  const getConversationName = () => currentConversation?.name || "Conversation";
+  const getAvatarUrl = () => currentConversation?.avatarUrl || message?.receiverAvatarUrl || "/default-avatar.png";
+  const conversationName = getConversationName();
 
   const handleStartCall = async (isAudioOnly = false) => {
     const currentUserId = getUserIdFromToken();
@@ -61,7 +62,7 @@ const ChatHeader = ({ close, message, toggleSidebar }) => {
           callParticipants.map(p => getStreamToken(p.userId).catch(e => console.error("Token generation error:", e)))
         );
       } catch (e) {
-        console.warn("Some users not activated on Stream");
+        console.warn("Some users not activated on Stream: ", e);
       }
 
       const sanitizedUserId = sanitizeUserId(currentUserId);
@@ -114,7 +115,7 @@ const ChatHeader = ({ close, message, toggleSidebar }) => {
         <div className="flex items-center gap-3">
           <div className="avatar">
             <div className="size-10 rounded-full relative">
-              <img src={avatarUrl} alt={conversationName} />
+              <img src={getAvatarUrl()} alt={conversationName} />
             </div>
           </div>
           <div>
