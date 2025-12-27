@@ -3,7 +3,7 @@ import { StreamVideo, StreamCall, ParticipantView, useCallStateHooks } from '@st
 import { X, Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MonitorUp, User } from 'lucide-react';
 import { useCall } from '../../contexts/CallContext';
 import { sanitizeUserId } from '../../lib/callHelpers';
-import {useUserStore} from "../../stores/useUserStore";
+import { useUserStore } from "../../stores/useUserStore";
 import { getUserIdFromToken } from '../../lib/utils';
 
 // Component pattern cho từng participant
@@ -40,10 +40,10 @@ const ParticipantPattern = ({ participant, isCurrentUser, isAudioOnly }) => {
 
         // Ưu tiên fullName, fallback userName, rồi participantId
         setDisplayName(
-          fullName !== 'Unknown' 
-            ? fullName 
-            : userName !== 'Unknown' 
-              ? userName 
+          fullName !== 'Unknown'
+            ? fullName
+            : userName !== 'Unknown'
+              ? userName
               : participantId
         );
       } catch (error) {
@@ -55,7 +55,7 @@ const ParticipantPattern = ({ participant, isCurrentUser, isAudioOnly }) => {
     loadUser();
 
   }, [participantId, isCurrentUser, getUserById]); // dependencies quan trọng
-  
+
 
   return (
     <div className="flex flex-col gap-3">
@@ -196,11 +196,14 @@ const ActiveCallModal = () => {
 
   // Get and sort participants - current user first
   const participants = activeCall.state?.participants || [];
+  // Xóa phần tử đầu tiên (current user) khỏi mảng participants
+  const filteredParticipants = participants.slice(1);
+
   const currentUserId = getUserIdFromToken();
-  console.log(participants, currentUserId);
+  console.log('Participants after removing first:', filteredParticipants, currentUserId);
 
   // Sort: current user first, then others
-  const sortedParticipants = [...participants].sort((a, b) => {
+  const sortedParticipants = [...filteredParticipants].sort((a, b) => {
     const aId = sanitizeUserId(a.userId || a.user_id || '');
     const bId = sanitizeUserId(b.userId || b.user_id || '');
     const currentSanitized = sanitizeUserId(currentUserId || '');
@@ -254,7 +257,7 @@ const ActiveCallModal = () => {
             <div className="flex-1 flex items-center justify-center p-6 pt-32 pb-32">
               <div className="w-full max-w-7xl mx-auto">
                 <div className={`grid gap-6 ${sortedParticipants.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' : 'grid-cols-2'}`}>
-                  {sortedParticipants.slice(1).map((participant) => {
+                  {sortedParticipants.map((participant) => {
                     const participantId = sanitizeUserId(participant.userId || participant.user_id || '');
                     const currentSanitized = sanitizeUserId(currentUserId || '');
                     const isCurrentUser = participantId === currentUserId;
