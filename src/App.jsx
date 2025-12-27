@@ -23,10 +23,17 @@ import FriendsPage from "./pages/FriendsPage"
 import { getUserIdFromToken } from "./lib/utils"
 
 function App() {
-  const {theme} = useThemeStore();
+  const { theme } = useThemeStore();
   const hubUrl = import.meta.env.VITE_SIGNALR_HUB;
   const connection = useSignalR(hubUrl);
-  const {appendMessage, addMembersSocket, updateConversationName, removeMemberSocket, leaveGroupSocket} = useConversationStore();
+  const {
+    appendMessage,
+    addMembersSocket,
+    updateConversationName,
+    removeMemberSocket,
+    leaveGroupSocket,
+    updateMessageReaction,
+  } = useConversationStore();
 
   const authUserId = getUserIdFromToken();
 
@@ -34,48 +41,61 @@ function App() {
     if (!connection) return;
 
     const handler = (payload) => {
-      
       console.debug("SignalR ReceiveMessage payload:", payload);
       const conversationId = payload?.conversationId;
       const message = payload;
 
-      if(conversationId && payload.newMembers){
+      if (payload && payload.type === "ReactionUpdate") {
+        updateMessageReaction(payload);
+        return;
+      }
+
+      if (conversationId && payload.newMembers) {
         addMembersSocket(conversationId.toString(), payload.newMembers);
       }
 
-      if(conversationId && payload.newGroupName){
+      if (conversationId && payload.newGroupName) {
         updateConversationName(conversationId.toString(), payload.newGroupName);
       }
 
-      if(conversationId && payload.kickedMemberId){
+      if (conversationId && payload.kickedMemberId) {
         removeMemberSocket(conversationId.toString(), payload.kickedMemberId);
 
-        if(authUserId == payload.kickedMemberId){
-          connection.invoke("LeaveConversation", conversationId.toString())
-                .catch(err => console.error(err));
+        if (authUserId == payload.kickedMemberId) {
+          connection
+            .invoke("LeaveConversation", conversationId.toString())
+            .catch((err) => console.error(err));
         }
       }
 
-      if(conversationId && payload.leftUserId && payload.newAdminId){
-        leaveGroupSocket(conversationId, payload.leftUserId, payload.newAdminId)
+      if (conversationId && payload.leftUserId && payload.newAdminId) {
+        leaveGroupSocket(
+          conversationId,
+          payload.leftUserId,
+          payload.newAdminId
+        );
       }
-      
+
       if (!message.createdAt) {
         message.createdAt = new Date().toISOString();
       }
-      
-      if (conversationId && message && (!message.isSystemMessage || message.type !== 99)) {
+
+      if (
+        conversationId &&
+        message &&
+        (!message.isSystemMessage || message.type !== 99)
+      ) {
         appendMessage(conversationId.toString(), message);
       } else {
         appendMessage(null, message);
       }
     };
-    
+
     connection.on("ReceiveMessage", handler);
-    
+
     return () => {
-      try { 
-        connection.off("ReceiveMessage", handler); 
+      try {
+        connection.off("ReceiveMessage", handler);
       } catch (e) {
         console.log("Failed to unregister ReceiveMessage handler:", e);
       }
@@ -88,12 +108,14 @@ function App() {
         <div data-theme={theme}>
           <Navbar />
 
-          <Routes>
-          <Route element={
-            <PrivateRoutes>
-              <Outlet />
-            </PrivateRoutes>
-          }>         
+        <Routes>
+          <Route
+            element={
+              <PrivateRoutes>
+                <Outlet />
+              </PrivateRoutes>
+            }
+          >
             <Route path="/" element={<HomePage />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Route>
@@ -104,18 +126,17 @@ function App() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/friends" element={<FriendsPage />} />
           <Route path="*" element={<NotFoundPage />} />
-          </Routes>
+        </Routes>
 
           <Toaster />
           
-          {/* Global Call Modals */}
           <IncomingCallModal />
           <OutgoingCallModal />
           <ActiveCallModal />
         </div>
       </CallProvider>
     </SignalRProvider>
-  )
+  );
 }
 
-export default App
+export default App;

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Shuffle } from "lucide-react"; 
 import { useConversationStore } from "../../stores/useConversationStore";
 import { formatMessageTimestamp } from "../../lib/utils";
 import { useFriendStore } from "../../stores/useFriendStore";
@@ -16,7 +16,8 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
     isCreatingConversation, 
     isCreatingGroup, 
     createGroup,
-    markConversationAsRead      
+    markConversationAsRead,
+    randomConversation 
   } = useConversationStore();
 
   const { friends, getFriendsList, isLoadingFriends } = useFriendStore();
@@ -37,9 +38,26 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
     getConversations();
   }, [getConversations]);
 
-  if (isGettingConversations) {
-    return <SidebarSkeleton />;
-  }
+  const handleRandomChat = async () => {
+    try {
+      toast.loading("Đang tìm kiếm đối phương...", { id: "random-chat" });
+      
+      const newConv = await randomConversation();
+      
+      const newConvId = newConv?.conversationId || newConv?.id;
+
+      if (newConvId) {
+        setSelectedConversation(newConvId);
+        if (typeof onSelect === 'function') onSelect(newConvId);
+        toast.success("Đã kết nối với một người bạn mới!", { id: "random-chat" });
+      } else {
+        toast.error("Không tìm thấy phòng chat!", { id: "random-chat" });
+      }
+    } catch (error) {
+      console.error("Random chat error:", error);
+      toast.error("Không thể ghép đôi lúc này. Vui lòng thử lại!", { id: "random-chat" });
+    }
+  };
 
   const openFriendModal = async () => {
     try {
@@ -52,7 +70,8 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
 
   const handleCreateConversation = async (friend) => {
     try {
-      const friendId = friend.friendUserId;
+      const friendId = friend.friendUserId || friend.id || friend._id;
+      
       const existing = (conversations || [])?.find((conv) => {
         if (!conv) return false;
         if (conv.receiverId === friendId || conv.otherUserId === friendId || conv.friendUserId === friendId) return true;
@@ -75,7 +94,7 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
           if (typeof onSelect === 'function') onSelect(existingId);
         }
         setIsFriendModalOpen(false);
-        toast.success("Opened existing conversation");
+        toast.success("Đã mở cuộc trò chuyện");
         return existingId;
       }
 
@@ -91,7 +110,7 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
       }
 
       setIsFriendModalOpen(false);
-      toast.success("Conversation created");
+      toast.success("Đã tạo cuộc trò chuyện mới");
       return newConvId;
     } catch (error) {
       toast.error(error?.message || "Failed to create conversation");
@@ -103,18 +122,19 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
     if (isCreatingGroup) return;
     try {
       const newGroup = await createGroup(groupData);
-      
       setIsFriendModalOpen(false); 
-
       const newGroupId = newGroup?.conversationId || newGroup?.id;
       if (newGroupId) {
         setSelectedConversation(newGroupId);
         if (typeof onSelect === 'function') onSelect(newGroupId);
       }
-      
     } catch (error) {
       console.error("Failed to create group in Sidebar", error);
     }
+  };
+
+  if (isGettingConversations) {
+    return <SidebarSkeleton />;
   }
 
   return (
@@ -122,13 +142,25 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
       <div className="px-4 pt-5 pb-2">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-3xl font-bold text-base-content">Chats</h1>
-          <button
-            className="btn btn-sm btn-square btn-ghost hover:bg-base-300 rounded-lg"
-            onClick={openFriendModal}
-            aria-label="New conversation"
-          >
-            <Plus className="size-5 text-base-content" />
-          </button>
+          
+          <div className="flex items-center gap-1">
+            <button
+              className={`btn btn-sm btn-square btn-ghost hover:bg-base-300 rounded-lg tooltip tooltip-bottom ${isCreatingConversation ? 'loading' : ''}`}
+              onClick={handleRandomChat}
+              disabled={isCreatingConversation}
+              data-tip="Random chat"
+            >
+              {!isCreatingConversation && <Shuffle className="size-5 text-primary" />}
+            </button>
+
+            <button
+              className="btn btn-sm btn-square btn-ghost hover:bg-base-300 rounded-lg tooltip tooltip-bottom"
+              onClick={openFriendModal}
+              data-tip="New conversation"
+            >
+              <Plus className="size-5 text-base-content" />
+            </button>
+          </div>
         </div>
 
         <div className="relative w-full">
@@ -139,9 +171,8 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search conversations"
+            placeholder="Search conversation..."
             className="input input-bordered w-full pl-10 h-10 rounded-xl bg-base-200 focus:outline-none focus:ring-1 focus:ring-primary border-none"
-            aria-label="Search conversations"
           />
         </div>
       </div>
@@ -176,11 +207,12 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
             <div className="text-left min-w-0 flex-1 flex flex-col justify-center">
               <div className="flex justify-between items-baseline">
                 <span
+                  title={`Username: @${conversation.username || conversation.userName || 'user'}`}
                   className={`truncate text-base ${
                     !conversation.isRead ? "font-bold" : "font-medium text-base-content"
                   }`}
                 >
-                  {conversation.name || conversation.conversationName}
+                  {conversation.name || conversation.conversationName || "Người lạ"}
                 </span>
                 <span className="text-xs text-base-content/50 ml-2 whitespace-nowrap">
                   {formatMessageTimestamp(conversation.lastMessageTime)}
@@ -195,7 +227,7 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
                       : "text-base-content/60" 
                   }`}
                 >
-                  {conversation.lastMessageContent || "Bắt đầu cuộc trò chuyện"}
+                  {conversation.lastMessageContent || "Start a new conversation!"}
                 </span>
                 
                 {!conversation.isRead && (
@@ -208,7 +240,7 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
         
         {(!filteredConversations || filteredConversations.length === 0) && (
           <div className="text-center text-base-content/50 py-10">
-            No conversations found
+            Cannot find any conversations.
           </div>
         )}
       </div>
@@ -218,9 +250,7 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
         onClose={() => setIsFriendModalOpen(false)}
         friends={friends}
         isLoading={isLoadingFriends}
-        onSelectFriend={async (friend) => {
-          await handleCreateConversation(friend);
-        }}
+        onSelectFriend={handleCreateConversation}
         onCreateGroup={handleCreateGroup}
       />
     </aside>

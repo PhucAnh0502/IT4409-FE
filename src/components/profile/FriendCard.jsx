@@ -42,14 +42,9 @@ const FriendCard = ({ friend, size = "small" }) => {
           <img src={avatarUrl} alt={username} className="rounded-full" />
         </div>
       </div>
-      <p className="text-xs text-base-content/60 truncate w-full px-1">
-        @{username}
+      <p className="text-m text-base-content/60 truncate w-full px-1">
+        {username}
       </p>
-      {friend.friendedBy !== undefined && friend.friendedBy !== null && (
-        <p className="text-xs text-base-content/50 truncate w-full px-1">
-          {friend.friendedBy} mutual {friend.friendedBy.length === 1 ? 'friend' : 'friends'}
-        </p>
-      )}
     </div>
   );
 };
