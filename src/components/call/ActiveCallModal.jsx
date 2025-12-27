@@ -3,19 +3,68 @@ import { StreamVideo, StreamCall, ParticipantView, useCallStateHooks } from '@st
 import { X, Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MonitorUp, User } from 'lucide-react';
 import { useCall } from '../../contexts/CallContext';
 import { sanitizeUserId } from '../../lib/callHelpers';
+import {useUserStore} from "../../stores/useUserStore";
+import { getUserIdFromToken } from '../../lib/utils';
 
 // Component pattern cho từng participant
 const ParticipantPattern = ({ participant, isCurrentUser, isAudioOnly }) => {
-  const participantName = participant.name || participant.userName || participant.userId || 'Unknown';
+  // Lấy các hàm và state từ store
+  const { getUserById, user: fetchedUser, isLoadingUser } = useUserStore();
+
+  const [displayName, setDisplayName] = useState('Loading...');
+
+  const participantId = participant?.userId || participant?.user_id || 'Unknown';
+
+  useEffect(() => {
+    // Trường hợp id không hợp lệ
+    if (!participantId || participantId === 'Unknown') {
+      setDisplayName('Unknown');
+      return;
+    }
+
+    // Nếu là current user → hiển thị ngay "You"
+    if (isCurrentUser) {
+      setDisplayName('You');
+      return;
+    }
+
+    // Gọi hàm từ store để lấy user
+    const loadUser = async () => {
+      try {
+        // getUserById trả về promise chứa user object
+        const userData = await getUserById(participantId);
+
+        // userData có thể là res trực tiếp hoặc res.data, tùy backend
+        const fullName = userData?.fullName || userData?.data?.fullName || 'Unknown';
+        const userName = userData?.userName || userData?.data?.userName || 'Unknown';
+
+        // Ưu tiên fullName, fallback userName, rồi participantId
+        setDisplayName(
+          fullName !== 'Unknown' 
+            ? fullName 
+            : userName !== 'Unknown' 
+              ? userName 
+              : participantId
+        );
+      } catch (error) {
+        console.error(`Lỗi lấy thông tin user ${participantId}:`, error);
+        setDisplayName('Error');
+      }
+    };
+
+    loadUser();
+
+  }, [participantId, isCurrentUser, getUserById]); // dependencies quan trọng
+  
 
   return (
     <div className="flex flex-col gap-3">
       {/* Participant Info */}
       <div className="bg-white/10 backdrop-blur-md rounded-xl px-4 py-2.5 border border-white/20">
         <p className="text-white/90 text-sm font-medium flex items-center gap-2">
-          <User className="w-4 h-4" />
           <span className="truncate">
-            {participantName} {isCurrentUser && '(You)'}
+            {isLoadingUser ? 'Loading...' : displayName}
+            {isCurrentUser && " (You)"}
           </span>
         </p>
       </div>
@@ -34,7 +83,10 @@ const ParticipantPattern = ({ participant, isCurrentUser, isAudioOnly }) => {
             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-2xl">
               <User className="w-12 h-12 text-white" />
             </div>
-            <p className="text-white/80 font-medium">{participantName}</p>
+            <p className="text-white/80 font-medium">
+              {isLoadingUser ? 'Loading...' : displayName}
+              {isCurrentUser && " (You)"}
+            </p>
           </div>
         </div>
       )}
@@ -144,7 +196,8 @@ const ActiveCallModal = () => {
 
   // Get and sort participants - current user first
   const participants = activeCall.state?.participants || [];
-  const currentUserId = client?.user?.id;
+  const currentUserId = getUserIdFromToken();
+  console.log(participants, currentUserId);
 
   // Sort: current user first, then others
   const sortedParticipants = [...participants].sort((a, b) => {
@@ -204,11 +257,11 @@ const ActiveCallModal = () => {
                   {sortedParticipants.slice(1).map((participant) => {
                     const participantId = sanitizeUserId(participant.userId || participant.user_id || '');
                     const currentSanitized = sanitizeUserId(currentUserId || '');
-                    const isCurrentUser = participantId === currentSanitized;
+                    const isCurrentUser = participantId === currentUserId;
 
                     return (
                       <ParticipantPattern
-                        key={participant.sessionId || participant.userId}
+                        key={participant.userName}
                         participant={participant}
                         isCurrentUser={isCurrentUser}
                         isAudioOnly={isAudioOnly}
@@ -230,8 +283,8 @@ const ActiveCallModal = () => {
                       <button
                         onClick={toggleMic}
                         className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg ${isMicOn
-                            ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                            : 'bg-red-500 hover:bg-red-600 text-white'
+                          ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                          : 'bg-red-500 hover:bg-red-600 text-white'
                           }`}
                         title={isMicOn ? 'Mute' : 'Unmute'}
                       >
@@ -248,8 +301,8 @@ const ActiveCallModal = () => {
                         <button
                           onClick={toggleVideo}
                           className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg ${isVideoOn
-                              ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                              : 'bg-red-500 hover:bg-red-600 text-white'
+                            ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                            : 'bg-red-500 hover:bg-red-600 text-white'
                             }`}
                           title={isVideoOn ? 'Stop Video' : 'Start Video'}
                         >
@@ -261,7 +314,7 @@ const ActiveCallModal = () => {
                       </div>
                     )}
 
-                    
+
 
                     {/* End Call Button */}
                     <div className="flex flex-col items-center gap-2">
