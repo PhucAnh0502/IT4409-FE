@@ -64,7 +64,7 @@ const ParticipantPattern = ({ participant, isCurrentUser, isAudioOnly }) => {
         <p className="text-white/90 text-sm font-medium flex items-center gap-2">
           <span className="truncate">
             {isLoadingUser ? 'Loading...' : displayName}
-            {isCurrentUser && " (You)"}
+            {/* {isCurrentUser && " (You)"} */}
           </span>
         </p>
       </div>
@@ -85,7 +85,7 @@ const ParticipantPattern = ({ participant, isCurrentUser, isAudioOnly }) => {
             </div>
             <p className="text-white/80 font-medium">
               {isLoadingUser ? 'Loading...' : displayName}
-              {isCurrentUser && " (You)"}
+              {/* {isCurrentUser && " (You)"} */}
             </p>
           </div>
         </div>
