@@ -2,3 +2,110 @@
 @plugin "daisyui" {
   themes: all;
 }
+
+/* Smooth fade-in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Slow pulse for background */
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.1);
+  }
+}
+
+/* Gentle pulse for accept button */
+@keyframes pulse-gentle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
+.animate-pulse-gentle {
+  animation: pulse-gentle 2s ease-in-out infinite;
+}
+
+/* Custom styles for GetStream video components */
+.str-video__speaker-layout {
+  border-radius: 1rem;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+/* Hide participant names/IDs */
+.str-video__participant-details,
+.str-video__participant-name,
+.str-video__participant-label,
+.str-video__video-placeholder__label {
+  display: none !important;
+}
+
+/* Call controls container - horizontal layout */
+.str-video__call-controls {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 1rem !important;
+  padding: 0 !important;
+}
+
+/* Individual control buttons */
+.str-video__call-controls button {
+  transition: all 0.2s !important;
+  border-radius: 50% !important;
+  width: 3.5rem !important;
+  height: 3.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.str-video__call-controls button:hover {
+  transform: scale(1.1) !important;
+}
+
+/* Make sure controls are visible */
+.str-video__call-controls,
+.str-video__call-controls > *,
+.str-video__call-controls button {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Participant view styling */
+.str-video__participant-view {
+  border-radius: 0.5rem;
+}
+
+/* Video container */
+.str-video__video {
+  object-fit: cover;
+}
