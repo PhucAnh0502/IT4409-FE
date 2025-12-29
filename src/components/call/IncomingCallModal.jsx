@@ -29,7 +29,11 @@ const IncomingCallModal = () => {
     };
   }, []);
 
-  if (!incomingCall) return null;
+  // Check if it's a group call (>2 participants)
+  const isGroupCall = incomingCall?.participantCount > 2;
+
+  // Don't show modal for group calls (use inline notification instead) or if no call
+  if (!incomingCall || isGroupCall) return null;
 
   // callerName và isAudioOnly được lưu từ CallContext khi nhận ring event
   const callerName = incomingCall.callerName || 'Someone';

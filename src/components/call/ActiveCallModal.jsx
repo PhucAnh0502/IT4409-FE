@@ -3,38 +3,112 @@ import { StreamVideo, StreamCall, ParticipantView, useCallStateHooks } from '@st
 import { X, Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MonitorUp, User } from 'lucide-react';
 import { useCall } from '../../contexts/CallContext';
 import { sanitizeUserId } from '../../lib/callHelpers';
+import { useUserStore } from "../../stores/useUserStore";
+import { getUserIdFromToken } from '../../lib/utils';
 
 // Component pattern cho từng participant
 const ParticipantPattern = ({ participant, isCurrentUser, isAudioOnly }) => {
-  const participantName = participant.name || participant.userName || participant.userId || 'Unknown';
+  // Lấy các hàm và state từ store
+  const { getUserById, user: fetchedUser, isLoadingUser } = useUserStore();
+
+  const [displayName, setDisplayName] = useState('Loading...');
+
+  const participantId = participant?.userId || participant?.user_id || 'Unknown';
+
+  useEffect(() => {
+    // Trường hợp id không hợp lệ
+    if (!participantId || participantId === 'Unknown') {
+      setDisplayName('Unknown');
+      return;
+    }
+
+    // Nếu là current user → hiển thị ngay "You"
+    if (isCurrentUser) {
+      setDisplayName('You');
+      return;
+    }
+
+    // Gọi hàm từ store để lấy user
+    const loadUser = async () => {
+      try {
+        // getUserById trả về promise chứa user object
+        const userData = await getUserById(participantId);
+
+        // userData có thể là res trực tiếp hoặc res.data, tùy backend
+        const fullName = userData?.fullName || userData?.data?.fullName || 'Unknown';
+        const userName = userData?.userName || userData?.data?.userName || 'Unknown';
+
+        // Ưu tiên fullName, fallback userName, rồi participantId
+        setDisplayName(
+          fullName !== 'Unknown'
+            ? fullName
+            : userName !== 'Unknown'
+              ? userName
+              : participantId
+        );
+      } catch (error) {
+        console.error(`Lỗi lấy thông tin user ${participantId}:`, error);
+        setDisplayName('Error');
+      }
+    };
+
+    loadUser();
+
+  }, [participantId, isCurrentUser, getUserById]); // dependencies quan trọng
+
+
+
+  // Detect if participant is speaking
+  const isSpeaking = participant?.isSpeaking || false;
+  const audioLevel = participant?.audioLevel || 0;
+
+  // Dynamic border color based on speaking state
+  const borderClass = isSpeaking
+    ? 'border-green-400 shadow-[0_0_20px_rgba(74,222,128,0.6)] animate-pulse'
+    : 'border-gray-700';
 
   return (
     <div className="flex flex-col gap-3">
       {/* Participant Info */}
-      <div className="bg-white/10 backdrop-blur-md rounded-xl px-4 py-2.5 border border-white/20">
+      <div className={`bg-white/10 backdrop-blur-md rounded-xl px-4 py-2.5 border transition-all duration-300 ${isSpeaking ? 'border-green-400' : 'border-white/20'}`}>
         <p className="text-white/90 text-sm font-medium flex items-center gap-2">
-          <User className="w-4 h-4" />
           <span className="truncate">
-            {participantName} {isCurrentUser && '(You)'}
+            {isLoadingUser ? 'Loading...' : displayName}
+            {/* {isCurrentUser && " (You)"} */}
           </span>
+          {isSpeaking && (
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+            </span>
+          )}
         </p>
       </div>
 
       {/* Participant Video/Audio */}
       {!isAudioOnly ? (
-        <div className="rounded-2xl overflow-hidden bg-black border border-gray-700 shadow-xl aspect-video">
+        <div className={`rounded-2xl overflow-hidden bg-black border-2 shadow-xl aspect-video transition-all duration-300 ${borderClass}`}>
           <ParticipantView
             participant={participant}
             ParticipantViewUI={null}
           />
         </div>
       ) : (
-        <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 shadow-xl aspect-video flex items-center justify-center">
+        <div className={`rounded-2xl overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900 border-2 shadow-xl aspect-video flex items-center justify-center transition-all duration-300 ${borderClass}`}>
           <div className="flex flex-col items-center gap-4">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-2xl">
+            <div className={`w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-2xl transition-all duration-300 ${isSpeaking ? 'scale-110 shadow-[0_0_30px_rgba(74,222,128,0.5)]' : ''}`}>
               <User className="w-12 h-12 text-white" />
             </div>
-            <p className="text-white/80 font-medium">{participantName}</p>
+            <p className="text-white/80 font-medium">
+              {isLoadingUser ? 'Loading...' : displayName}
+              {/* {isCurrentUser && " (You)"} */}
+            </p>
+            {isSpeaking && (
+              <div className="flex gap-1">
+                <span className="w-1 h-4 bg-green-400 rounded-full animate-pulse"></span>
+                <span className="w-1 h-4 bg-green-400 rounded-full animate-pulse delay-75"></span>
+                <span className="w-1 h-4 bg-green-400 rounded-full animate-pulse delay-150"></span>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -144,10 +218,14 @@ const ActiveCallModal = () => {
 
   // Get and sort participants - current user first
   const participants = activeCall.state?.participants || [];
-  const currentUserId = client?.user?.id;
+  // Xóa phần tử đầu tiên (current user) khỏi mảng participants
+  const filteredParticipants = participants.slice(1);
+
+  const currentUserId = getUserIdFromToken();
+  console.log('Participants after removing first:', filteredParticipants, currentUserId);
 
   // Sort: current user first, then others
-  const sortedParticipants = [...participants].sort((a, b) => {
+  const sortedParticipants = [...filteredParticipants].sort((a, b) => {
     const aId = sanitizeUserId(a.userId || a.user_id || '');
     const bId = sanitizeUserId(b.userId || b.user_id || '');
     const currentSanitized = sanitizeUserId(currentUserId || '');
@@ -201,14 +279,14 @@ const ActiveCallModal = () => {
             <div className="flex-1 flex items-center justify-center p-6 pt-32 pb-32">
               <div className="w-full max-w-7xl mx-auto">
                 <div className={`grid gap-6 ${sortedParticipants.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' : 'grid-cols-2'}`}>
-                  {sortedParticipants.slice(1).map((participant) => {
+                  {sortedParticipants.map((participant) => {
                     const participantId = sanitizeUserId(participant.userId || participant.user_id || '');
                     const currentSanitized = sanitizeUserId(currentUserId || '');
-                    const isCurrentUser = participantId === currentSanitized;
+                    const isCurrentUser = participantId === currentUserId;
 
                     return (
                       <ParticipantPattern
-                        key={participant.sessionId || participant.userId}
+                        key={participant.userName}
                         participant={participant}
                         isCurrentUser={isCurrentUser}
                         isAudioOnly={isAudioOnly}
@@ -230,8 +308,8 @@ const ActiveCallModal = () => {
                       <button
                         onClick={toggleMic}
                         className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg ${isMicOn
-                            ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                            : 'bg-red-500 hover:bg-red-600 text-white'
+                          ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                          : 'bg-red-500 hover:bg-red-600 text-white'
                           }`}
                         title={isMicOn ? 'Mute' : 'Unmute'}
                       >
@@ -248,8 +326,8 @@ const ActiveCallModal = () => {
                         <button
                           onClick={toggleVideo}
                           className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg ${isVideoOn
-                              ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                              : 'bg-red-500 hover:bg-red-600 text-white'
+                            ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                            : 'bg-red-500 hover:bg-red-600 text-white'
                             }`}
                           title={isVideoOn ? 'Stop Video' : 'Start Video'}
                         >
@@ -261,7 +339,7 @@ const ActiveCallModal = () => {
                       </div>
                     )}
 
-                    
+
 
                     {/* End Call Button */}
                     <div className="flex flex-col items-center gap-2">
