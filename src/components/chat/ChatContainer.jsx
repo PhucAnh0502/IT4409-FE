@@ -1,10 +1,12 @@
-import React, { useEffect, useRef, useLayoutEffect, useState } from "react";
+import React, { useEffect, useRef, useLayoutEffect, useState, useMemo } from "react";
 import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
 import ImageModal from "./ImageModal";
 import ReactionDetailModal from "./ReactionDetailModal";
+import InlineCallNotification from "../call/InlineCallNotification";
 import { useConversationStore } from "../../stores/useConversationStore";
 import { useAuthStore } from "../../stores/useAuthStore";
+import { useCall } from "../../contexts/CallContext";
 import { formatMessageTimestamp, getUserIdFromToken } from "../../lib/utils";
 import MessageSkeleton from "../skeletons/MessageSkeleton";
 import { FileText, Download, Smile } from "lucide-react";
@@ -55,7 +57,7 @@ const DateSeparator = ({ date }) => {
 
 const ChatContainer = ({
   conversationId = null,
-  onClose = () => {},
+  onClose = () => { },
   onToggleRightSidebar,
 }) => {
   const {
@@ -68,7 +70,11 @@ const ChatContainer = ({
     reactMessage,
   } = useConversationStore();
   const { authUser } = useAuthStore();
+  const { incomingCall } = useCall();
   const userId = getUserIdFromToken() || authUser?.id;
+
+  // Check if incoming call is a group call (>2 participants)
+  const isGroupCall = incomingCall?.participantCount > 2;
 
   const messageEndRef = useRef(null);
   const containerRef = useRef(null);
@@ -165,6 +171,14 @@ const ChatContainer = ({
         toggleSidebar={onToggleRightSidebar}
       />
 
+      {/* Show inline call notification for group calls */}
+      {incomingCall && isGroupCall && (
+        <InlineCallNotification
+          callerName={incomingCall.callerName}
+          isAudioOnly={incomingCall.isAudioOnly}
+        />
+      )}
+
       <div
         ref={containerRef}
         onScroll={handleScroll}
@@ -224,8 +238,8 @@ const ChatContainer = ({
                           isMe
                             ? message.senderAvatarUrl || "/default-avatar.png"
                             : message.receiverAvatarUrl ||
-                              message.senderAvatarUrl ||
-                              "/default-avatar.png"
+                            message.senderAvatarUrl ||
+                            "/default-avatar.png"
                         }
                         alt="avatar"
                       />
@@ -233,16 +247,13 @@ const ChatContainer = ({
                   </div>
 
                   <div
-                    className={`flex items-center gap-2 group ${
-                      isMe ? "flex-row-reverse" : "flex-row"
-                    }`}
+                    className={`flex items-center gap-2 group ${isMe ? "flex-row-reverse" : "flex-row"
+                      }`}
                   >
                     <div
-                      className={`chat-bubble flex flex-col p-3 relative shadow-sm ${
-                        isMe ? "chat-bubble-primary" : "chat-bubble-secondary"
-                      } ${
-                        images.length > 0 ? "max-w-[80%] sm:max-w-[600px]" : ""
-                      }`}
+                      className={`chat-bubble flex flex-col p-3 relative shadow-sm ${isMe ? "chat-bubble-primary" : "chat-bubble-secondary"
+                        } ${images.length > 0 ? "max-w-[80%] sm:max-w-[600px]" : ""
+                        }`}
                     >
                       {showReactionFor === message.id && (
                         <ReactionSelector
@@ -256,13 +267,12 @@ const ChatContainer = ({
                       {/* RENDER ẢNH */}
                       {images.length > 0 && (
                         <div
-                          className={`grid gap-1 mb-2 ${
-                            images.length === 1
-                              ? "grid-cols-1"
-                              : images.length === 2
+                          className={`grid gap-1 mb-2 ${images.length === 1
+                            ? "grid-cols-1"
+                            : images.length === 2
                               ? "grid-cols-2"
                               : "grid-cols-3"
-                          }`}
+                            }`}
                         >
                           {images.map((url, idx) => (
                             <div
@@ -273,11 +283,10 @@ const ChatContainer = ({
                               <img
                                 src={url}
                                 alt="Attachment"
-                                className={`object-cover w-full h-full ${
-                                  images.length === 1
-                                    ? "max-h-[300px]"
-                                    : "aspect-square"
-                                }`}
+                                className={`object-cover w-full h-full ${images.length === 1
+                                  ? "max-h-[300px]"
+                                  : "aspect-square"
+                                  }`}
                                 loading="lazy"
                               />
                             </div>
@@ -298,11 +307,10 @@ const ChatContainer = ({
                                 download
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className={`flex items-center gap-3 p-3 rounded-lg transition-colors border border-transparent ${
-                                  isMe
-                                    ? "bg-primary-content/10 hover:bg-primary-content/20 text-primary-content"
-                                    : "bg-base-100 hover:bg-base-200 text-base-content border-base-300"
-                                }`}
+                                className={`flex items-center gap-3 p-3 rounded-lg transition-colors border border-transparent ${isMe
+                                  ? "bg-primary-content/10 hover:bg-primary-content/20 text-primary-content"
+                                  : "bg-base-100 hover:bg-base-200 text-base-content border-base-300"
+                                  }`}
                               >
                                 <div className="p-2 bg-base-100 rounded-full text-primary shrink-0">
                                   <FileText size={20} />
@@ -337,9 +345,8 @@ const ChatContainer = ({
                               messageId: message.id,
                             })
                           }
-                          className={`absolute -bottom-3 cursor-pointer hover:scale-105 active:scale-95 transition-transform ${
-                            isMe ? "right-2" : "left-2"
-                          } flex items-center gap-0.5 bg-base-100 border border-base-300 rounded-full px-1.5 py-0.5 shadow-md z-10`}
+                          className={`absolute -bottom-3 cursor-pointer hover:scale-105 active:scale-95 transition-transform ${isMe ? "right-2" : "left-2"
+                            } flex items-center gap-0.5 bg-base-100 border border-base-300 rounded-full px-1.5 py-0.5 shadow-md z-10`}
                         >
                           {Array.from(
                             new Set(

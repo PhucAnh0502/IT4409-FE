@@ -173,7 +173,8 @@ export const CallProvider = ({ children }) => {
                   call,
                   createdAt: new Date(state.createdAt).getTime(),
                   callerName: state.custom?.callerName || state.createdBy?.name || 'Someone',
-                  isAudioOnly: state.custom?.isAudioOnly || false
+                  isAudioOnly: state.custom?.isAudioOnly || false,
+                  participantCount: state.custom?.participantCount || 2 // Default to 2 if not specified
                 });
               }
             }
@@ -191,7 +192,8 @@ export const CallProvider = ({ children }) => {
               setIncomingCall({
                 ...firstCall.call,
                 callerName: firstCall.callerName,
-                isAudioOnly: firstCall.isAudioOnly
+                isAudioOnly: firstCall.isAudioOnly,
+                participantCount: firstCall.participantCount
               });
             }
           } catch (error) {
@@ -217,8 +219,9 @@ export const CallProvider = ({ children }) => {
 
           const callerName = ev.call?.custom?.callerName || ev.call?.created_by?.name || 'Someone';
           const isAudioOnly = ev.call?.custom?.isAudioOnly || false;
+          const participantCount = ev.call?.custom?.participantCount || 2;
 
-          setIncomingCall({ ...call, callerName, isAudioOnly });
+          setIncomingCall({ ...call, callerName, isAudioOnly, participantCount });
         });
       } catch (e) {
         console.error('StreamVideo init error:', e);

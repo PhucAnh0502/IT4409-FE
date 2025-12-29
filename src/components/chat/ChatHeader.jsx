@@ -19,7 +19,7 @@ const ChatHeader = ({ close, message, toggleSidebar }) => {
   const currentConversation = useMemo(() => {
     if (!selectedConversation || !conversations) return null;
     return conversations.find(
-      (conv) => conv?.id === selectedConversation 
+      (conv) => conv?.id === selectedConversation
     );
   }, [selectedConversation, conversations]);
 
@@ -82,6 +82,7 @@ const ChatHeader = ({ close, message, toggleSidebar }) => {
           custom: {
             isAudioOnly,
             callerName: currentUserName,
+            participantCount: memberUserIds.length, // Total number of participants in the call
           }
         },
       });
