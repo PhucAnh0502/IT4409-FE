@@ -78,12 +78,12 @@ export const CallProvider = ({ children }) => {
         //  console.log('✅ Fetched userName:', userName);
         //}
 
-       //console.log('Creating StreamVideoClient with:', {
-       //  apiKey: apiKey.substring(0, 10) + '...',
-       //  userId: sanitized,
-       //  userName: userName || sanitized,
-       //  tokenLength: streamToken.length
-       //});
+        //console.log('Creating StreamVideoClient with:', {
+        //  apiKey: apiKey.substring(0, 10) + '...',
+        //  userId: sanitized,
+        //  userName: userName || sanitized,
+        //  tokenLength: streamToken.length
+        //});
 
         const videoClient = new StreamVideoClient({
           apiKey,
@@ -103,6 +103,69 @@ export const CallProvider = ({ children }) => {
 
         setClient(videoClient);
         console.log('Client set in state');
+
+        // Check for any pending/ringing calls that may have been initiated while user was offline
+        const checkForPendingCalls = async () => {
+          try {
+            console.log('Checking for pending calls...');
+
+            // Query for calls where current user is a member
+            const { calls } = await videoClient.queryCalls({
+              filter_conditions: {
+                members: { $in: [sanitized] }
+              },
+              sort: [{ field: 'created_at', direction: -1 }],
+              limit: 10,
+            });
+
+            console.log('Found calls:', calls.length);
+
+            // Find the first ringing call
+            for (const call of calls) {
+              // Get the call state to check if it's ringing
+              await call.get();
+
+              const state = call.state;
+              const participants = state.participants || [];
+              const currentUserParticipant = participants.find(p => p.userId === sanitized);
+              const hasJoined = currentUserParticipant?.joinedAt != null;
+              const hasSession = state.session != null;
+              const hasEnded = state.endedAt != null;
+
+              console.log('Call state:', {
+                id: call.id,
+                callingState: state.callingState,
+                hasSession,
+                hasEnded,
+                hasJoined,
+                participantCount: participants.length,
+                createdBy: state.createdBy?.id,
+                custom: state.custom
+              });
+
+              // Check if call is active and waiting for this user to join
+              // A call is pending for the user if:
+              // 1. The call hasn't ended
+              // 2. The current user hasn't joined yet
+              // 3. Either it's in ringing state OR there's an active session (other user is waiting)
+              if (!hasEnded && !hasJoined && (state.callingState === 'ringing' || hasSession)) {
+                console.log('Found pending call for user:', call.id);
+
+                const callerName = call.state.custom?.callerName || call.state.createdBy?.name || 'Someone';
+                const isAudioOnly = call.state.custom?.isAudioOnly || false;
+
+                setIncomingCall({ ...call, callerName, isAudioOnly });
+                console.log('Set pending call as incoming call');
+                break; // Only handle the first pending call
+              }
+            }
+          } catch (error) {
+            console.error('Error checking for pending calls:', error);
+          }
+        };
+
+        // Check for pending calls after client is ready
+        checkForPendingCalls();
 
         // Listen for incoming ringing calls
         videoClient.on('call.ring', (ev) => {
