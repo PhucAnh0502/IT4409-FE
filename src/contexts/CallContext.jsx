@@ -132,13 +132,15 @@ export const CallProvider = ({ children }) => {
               filter_conditions: {
                 members: { $in: [sanitized] }
               },
-              sort: [{ field: 'created_at', direction: -1 }],
+              sort: [{ field: 'created_at', direction: -1 }], // Keep as is, we'll sort manually
               limit: 10,
             });
 
             console.log('Found calls:', calls.length);
 
-            // Find the first ringing call
+            // Collect all valid pending calls
+            const validCalls = [];
+
             for (const call of calls) {
               // Get the call state to check if it's ringing
               await call.get();
@@ -158,28 +160,39 @@ export const CallProvider = ({ children }) => {
                 hasJoined,
                 participantCount: participants.length,
                 createdBy: state.createdBy?.id,
+                createdAt: state.createdAt,
                 custom: state.custom
               });
 
               // Check if call is active and waiting for this user to join
-              // A call is pending for the user if:
-              // 1. The call hasn't ended
-              // 2. The current user is NOT the caller (to avoid showing own outgoing calls)
-              // 3. The current user hasn't joined yet
-              // 4. Either it's in ringing state OR there's an active session (other user is waiting)
-              // 5. User is NOT already busy (no incoming, outgoing, or active call)
               if (!hasEnded && state.createdBy?.id !== sanitized && !hasJoined &&
                 (state.callingState === 'ringing' || hasSession) &&
                 !incomingCall && !outgoingCall && !activeCall) {
-                console.log('Found pending call for user:', call.id);
 
-                const callerName = call.state.custom?.callerName || call.state.createdBy?.name || 'Someone';
-                const isAudioOnly = call.state.custom?.isAudioOnly || false;
-
-                setIncomingCall({ ...call, callerName, isAudioOnly });
-                console.log('Set pending call as incoming call');
-                break; // Only handle the first pending call
+                validCalls.push({
+                  call,
+                  createdAt: new Date(state.createdAt).getTime(),
+                  callerName: state.custom?.callerName || state.createdBy?.name || 'Someone',
+                  isAudioOnly: state.custom?.isAudioOnly || false
+                });
               }
+            }
+
+            console.log('Valid pending calls:', validCalls.length);
+
+            // Sort valid calls by createdAt ascending (oldest first)
+            validCalls.sort((a, b) => a.createdAt - b.createdAt);
+
+            // Show the first (oldest) call
+            if (validCalls.length > 0) {
+              const firstCall = validCalls[0];
+              console.log('Showing oldest pending call:', firstCall.call.id, 'created at', new Date(firstCall.createdAt));
+
+              setIncomingCall({
+                ...firstCall.call,
+                callerName: firstCall.callerName,
+                isAudioOnly: firstCall.isAudioOnly
+              });
             }
           } catch (error) {
             console.error('Error checking for pending calls:', error);
