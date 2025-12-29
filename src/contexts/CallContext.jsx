@@ -146,9 +146,10 @@ export const CallProvider = ({ children }) => {
               // Check if call is active and waiting for this user to join
               // A call is pending for the user if:
               // 1. The call hasn't ended
-              // 2. The current user hasn't joined yet
-              // 3. Either it's in ringing state OR there's an active session (other user is waiting)
-              if (!hasEnded && !hasJoined && (state.callingState === 'ringing' || hasSession)) {
+              // 2. The current user is NOT the caller (to avoid showing own outgoing calls)
+              // 3. The current user hasn't joined yet
+              // 4. Either it's in ringing state OR there's an active session (other user is waiting)
+              if (!hasEnded && state.createdBy?.id !== sanitized && !hasJoined && (state.callingState === 'ringing' || hasSession)) {
                 console.log('Found pending call for user:', call.id);
 
                 const callerName = call.state.custom?.callerName || call.state.createdBy?.name || 'Someone';
