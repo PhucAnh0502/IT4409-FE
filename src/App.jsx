@@ -38,12 +38,32 @@ function App() {
   const authUserId = getUserIdFromToken();
 
   useEffect(() => {
-    if (!connection) return;
+    if (!connection || connection.state !== "Connected") return;
 
     const handler = (payload) => {
-      console.debug("SignalR ReceiveMessage payload:", payload);
-      const conversationId = payload?.conversationId;
-      const message = payload;
+      const message = payload || {};
+
+      let conversationId = message.conversationId;
+
+      if (!conversationId && message.receiverId) {
+        try {
+          const { conversations } = useConversationStore.getState();
+          const rid = String(message.receiverId);
+          const match = Array.isArray(conversations)
+            ? conversations.find(
+                (c) =>
+                  String(c.id) === rid ||
+                  String(c._id) === rid ||
+                  String(c.conversationId) === rid
+              )
+            : null;
+          if (match) {
+            conversationId = match.id || match._id || match.conversationId;
+          }
+        } catch {
+          /* ignore */
+        }
+      }
 
       if (payload && payload.type === "ReactionUpdate") {
         updateMessageReaction(payload);
@@ -76,10 +96,6 @@ function App() {
         );
       }
 
-      if (!message.createdAt) {
-        message.createdAt = new Date().toISOString();
-      }
-
       if (
         conversationId &&
         message &&
@@ -100,7 +116,7 @@ function App() {
         console.log("Failed to unregister ReceiveMessage handler:", e);
       }
     };
-  }, [connection, appendMessage]);
+  }, [connection, connection?.state, appendMessage]);
 
   return (
     <SignalRProvider connection={connection}>

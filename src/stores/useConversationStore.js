@@ -143,31 +143,54 @@ export const useConversationStore = create((set, get) => ({
 ,
 
     appendMessage: (conversationId, message) => {
-        if (!message) return;
-        
-        set((state) => {
-            const currentMessages = state.messages || [];
-            const messages = state.selectedConversation === conversationId 
-                ? [...currentMessages, message] 
-                : currentMessages;
+        if (!message || !conversationId) return;
 
-            let conversations = state.conversations || [];
-            if (!conversationId) return { messages, conversations };
-            
-            const idx = conversations.findIndex((c) => c?.id === conversationId);
+        set((state) => {
+            const cid = String(conversationId);
+            const sid = String(state.selectedConversation);
+            const isCurrentChat = sid === cid;
+
+            const updatedMessages = isCurrentChat
+                ? [...state.messages, message]
+                : state.messages;
+
+            let updatedConversations = [...state.conversations];
+            const idx = updatedConversations.findIndex((c) =>
+                String(c.id) === cid || String(c._id) === cid || String(c.conversationId) === cid
+            );
+
             if (idx !== -1) {
-                const conv = { ...conversations[idx] };
-                conv.lastMessageContent = message.content;
-                conv.lastMessageTime = message.createdAt;
-                conv.lastMessageSenderAvatarUrl = message.senderAvatarUrl;
-                conv.isRead = false;
-                conversations = [conv, ...conversations.slice(0, idx), ...conversations.slice(idx + 1)];
+                const updatedConv = {
+                    ...updatedConversations[idx],
+                    lastMessageContent: message.content || (message.mediaUrls?.length > 0 ? "[Media]" : ""),
+                    lastMessageTime: message.timestamp || new Date().toISOString(),
+                    lastMessageSenderAvatarUrl: message.senderAvatarUrl,
+                    isRead: isCurrentChat,
+                };
+
+                updatedConversations.splice(idx, 1);
+                updatedConversations.unshift(updatedConv);
+            } else {
+                updatedConversations = [
+                    {
+                        id: conversationId,
+                        conversationId,
+                        name: message.receiverUserName || message.senderUserName || "New conversation",
+                        avatarUrl: message.receiverAvartarUrl || message.receiverAvatarUrl || message.senderAvatarUrl,
+                        lastMessageContent: message.content || (message.mediaUrls?.length > 0 ? "[Media]" : ""),
+                        lastMessageTime: message.createdAt || message.timestamp || new Date().toISOString(),
+                        isRead: isCurrentChat,
+                    },
+                    ...updatedConversations,
+                ];
             }
 
-            return { messages, conversations };
+            return {
+                messages: updatedMessages,
+                conversations: updatedConversations,
+            };
         });
-    }
-,
+    },
 
     sendMessage: async (data) => {
         try {
