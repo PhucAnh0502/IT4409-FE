@@ -6,6 +6,8 @@ import { useFriendStore } from "../../stores/useFriendStore";
 import toast from "react-hot-toast";
 import SidebarSkeleton from "../skeletons/SidebarSkeleton";
 import FriendModal from "./FriendModal";
+import { useSignalRConnection } from "../../contexts/SignalRContext";
+import * as signalR from "@microsoft/signalr";
 
 const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) => {
   const { 
@@ -23,24 +25,63 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
   const { friends, getFriendsList, isLoadingFriends } = useFriendStore();
   const [isFriendModalOpen, setIsFriendModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const connection = useSignalRConnection();
 
   const filteredConversations = useMemo(() => {
-    if (!searchQuery) return conversations || [];
-    const q = searchQuery.toLowerCase().trim();
-    return (conversations || []).filter((conv) => {
-      const name = (conv?.name || conv?.conversationName || "").toString().toLowerCase();
-      const last = (conv?.lastMessageContent || conv?.lastMessage || "").toString().toLowerCase();
-      return name.includes(q) || last.includes(q);
+    let list = conversations || [];
+
+    if (searchQuery) {
+        const q = searchQuery.toLowerCase().trim();
+        list = list.filter((conv) => {
+            const name = (conv?.name || conv?.conversationName || "").toString().toLowerCase();
+            const last = (conv?.lastMessageContent || conv?.lastMessage || "").toString().toLowerCase();
+            return name.includes(q) || last.includes(q);
+        });
+    }
+
+    return [...list].sort((a, b) => {
+        const timeA = new Date(a.lastMessageTime || a.timestamp || 0).getTime();
+        const timeB = new Date(b.lastMessageTime || b.timestamp || 0).getTime();
+        return timeB - timeA; 
     });
-  }, [conversations, searchQuery]);
+}, [conversations, searchQuery]);
 
   useEffect(() => {
     getConversations();
   }, [getConversations]);
 
+  // Join tất cả conversations khi load để nhận messages từ bất kỳ conversation nào
+  useEffect(() => {
+    if (!connection || !conversations || conversations.length === 0) return;
+
+    const joinAllConversations = async () => {
+      try {
+        if (connection.state !== signalR.HubConnectionState.Connected) {
+          return;
+        }
+        
+        for (const conv of conversations) {
+          const convId = conv.id || conv.conversationId || conv._id;
+          if (convId) {
+            try {
+              await connection.invoke("JoinConversation", convId.toString());
+            } catch (err) {
+              console.error(`Failed to join conversation ${convId}:`, err);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error joining conversations:", error);
+      }
+    };
+
+    joinAllConversations();
+
+  }, [connection, conversations?.length]);
+
   const handleRandomChat = async () => {
     try {
-      toast.loading("Đang tìm kiếm đối phương...", { id: "random-chat" });
+      toast.loading("Finding random person...", { id: "random-chat" });
       
       const newConv = await randomConversation();
       
@@ -49,13 +90,13 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
       if (newConvId) {
         setSelectedConversation(newConvId);
         if (typeof onSelect === 'function') onSelect(newConvId);
-        toast.success("Đã kết nối với một người bạn mới!", { id: "random-chat" });
+        toast.success("Connected with a new friend!", { id: "random-chat" });
       } else {
-        toast.error("Không tìm thấy phòng chat!", { id: "random-chat" });
+        toast.error("No chat room found!", { id: "random-chat" });
       }
     } catch (error) {
       console.error("Random chat error:", error);
-      toast.error("Không thể ghép đôi lúc này. Vui lòng thử lại!", { id: "random-chat" });
+      toast.error("Unable to find a match right now. Please try again!", { id: "random-chat" });
     }
   };
 
@@ -94,7 +135,7 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
           if (typeof onSelect === 'function') onSelect(existingId);
         }
         setIsFriendModalOpen(false);
-        toast.success("Đã mở cuộc trò chuyện");
+        toast.success("Opened conversation");
         return existingId;
       }
 
@@ -110,7 +151,7 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
       }
 
       setIsFriendModalOpen(false);
-      toast.success("Đã tạo cuộc trò chuyện mới");
+      toast.success("Created a new conversation");
       return newConvId;
     } catch (error) {
       toast.error(error?.message || "Failed to create conversation");

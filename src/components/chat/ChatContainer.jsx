@@ -12,6 +12,8 @@ import MessageSkeleton from "../skeletons/MessageSkeleton";
 import { FileText, Download, Smile } from "lucide-react";
 import ReactionSelector from "./ReactionSelector";
 import { reactions } from "../../constants";
+import { useSignalRConnection } from "../../contexts/SignalRContext";
+import * as signalR from "@microsoft/signalr";
 
 // --- HELPER FUNCTIONS ---
 const isSameDay = (date1, date2) => {
@@ -72,6 +74,7 @@ const ChatContainer = ({
   const { authUser } = useAuthStore();
   const { incomingCall } = useCall();
   const userId = getUserIdFromToken() || authUser?.id;
+  const connection = useSignalRConnection();
 
   // Check if incoming call is a group call (>2 participants)
   const isGroupCall = incomingCall?.participantCount > 2;
@@ -93,6 +96,33 @@ const ChatContainer = ({
     reactions: [],
     messageId: null,
   });
+
+  // Join conversation khi mở ChatContainer
+  useEffect(() => {
+    if (!conversationId || !connection) return;
+
+    const joinConversation = async () => {
+      try {
+        if (connection.state !== signalR.HubConnectionState.Connected) {
+          await connection.start();
+        }
+        await connection.invoke("JoinConversation", conversationId.toString());
+      } catch (error) {
+        console.error("Failed to join conversation:", error);
+      }
+    };
+
+    joinConversation();
+
+    // Cleanup: leave conversation khi unmount hoặc chuyển conversation
+    return () => {
+      if (connection && connection.state === signalR.HubConnectionState.Connected) {
+        connection.invoke("LeaveConversation", conversationId.toString())
+          .then(() => console.log("Left conversation:", conversationId))
+          .catch(err => console.error("Failed to leave conversation:", err));
+      }
+    };
+  }, [conversationId, connection]);
 
   useEffect(() => {
     if (conversationId) getMessages(conversationId);
@@ -194,9 +224,9 @@ const ChatContainer = ({
           messages.map((message, index) => {
             if (!message) return null;
             const isMe = message.senderId === userId;
-            const currentMessageDate = message.createdAt;
+            const currentMessageDate = message.createdAt || message.timestamp;
             const prevMessageDate =
-              index > 0 ? messages[index - 1]?.createdAt : null;
+              index > 0 ? messages[index - 1]?.createdAt || messages[index - 1]?.timestamp : null;
             const showDateSeparator =
               !prevMessageDate ||
               !isSameDay(currentMessageDate, prevMessageDate);
@@ -389,7 +419,7 @@ const ChatContainer = ({
 
                   <div className="chat-footer mb-1 opacity-50 mt-1">
                     <span className="text-xs ml-1">
-                      {formatMessageTimestamp(message.createdAt)}
+                      {formatMessageTimestamp(message.createdAt || message.timestamp)}
                     </span>
                   </div>
                 </div>
