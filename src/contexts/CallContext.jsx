@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { StreamVideoClient } from '@stream-io/video-react-sdk';
 import { getStreamToken } from '../lib/tokenService';
 import { sanitizeUserId } from '../lib/callHelpers';
@@ -24,6 +24,24 @@ export const CallProvider = ({ children }) => {
 
   const currentUserId = getUserIdFromToken();
   const currentUserName = authUser?.userName;
+
+  // Use refs to track current call states for event handlers (to avoid stale closure)
+  const incomingCallRef = useRef(null);
+  const outgoingCallRef = useRef(null);
+  const activeCallRef = useRef(null);
+
+  // Update refs whenever state changes
+  useEffect(() => {
+    incomingCallRef.current = incomingCall;
+  }, [incomingCall]);
+
+  useEffect(() => {
+    outgoingCallRef.current = outgoingCall;
+  }, [outgoingCall]);
+
+  useEffect(() => {
+    activeCallRef.current = activeCall;
+  }, [activeCall]);
 
   // Initialize StreamVideoClient
   useEffect(() => {
@@ -149,7 +167,10 @@ export const CallProvider = ({ children }) => {
               // 2. The current user is NOT the caller (to avoid showing own outgoing calls)
               // 3. The current user hasn't joined yet
               // 4. Either it's in ringing state OR there's an active session (other user is waiting)
-              if (!hasEnded && state.createdBy?.id !== sanitized && !hasJoined && (state.callingState === 'ringing' || hasSession)) {
+              // 5. User is NOT already busy (no incoming, outgoing, or active call)
+              if (!hasEnded && state.createdBy?.id !== sanitized && !hasJoined &&
+                (state.callingState === 'ringing' || hasSession) &&
+                !incomingCall && !outgoingCall && !activeCall) {
                 console.log('Found pending call for user:', call.id);
 
                 const callerName = call.state.custom?.callerName || call.state.createdBy?.name || 'Someone';
@@ -170,6 +191,12 @@ export const CallProvider = ({ children }) => {
 
         // Listen for incoming ringing calls
         videoClient.on('call.ring', (ev) => {
+          // Reject if user is already busy with any call (use refs to get latest state)
+          if (incomingCallRef.current || outgoingCallRef.current || activeCallRef.current) {
+            console.log('User is busy, rejecting incoming call');
+            return;
+          }
+
           const callCid = ev.call?.cid;
           if (!callCid) return;
           const [callType, callId] = callCid.split(':');
