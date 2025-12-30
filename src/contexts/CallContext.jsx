@@ -29,6 +29,7 @@ export const CallProvider = ({ children }) => {
   const incomingCallRef = useRef(null);
   const outgoingCallRef = useRef(null);
   const activeCallRef = useRef(null);
+  const hasJoinedRef = useRef(false); // Track if receiver has joined
 
   // Update refs whenever state changes
   useEffect(() => {
@@ -267,6 +268,17 @@ export const CallProvider = ({ children }) => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [activeCall, outgoingCall, incomingCall, client]);
 
+  // ==================== HELPER FUNCTION ====================
+  // Check if a call is 1-on-1 based on participantCount in custom metadata
+  const isOneOnOneCall = (call) => {
+    // Try to get participantCount from custom metadata
+    // Default to 2 if not available (assume 1-on-1 for safety)
+    const participantCount = call?.state?.custom?.participantCount ||
+      call?.custom?.participantCount ||
+      2;
+    return participantCount === 2;
+  };
+
   // ==================== OUTGOING CALL LOGIC ====================
   useEffect(() => {
     if (!client || !outgoingCall) return;
@@ -274,10 +286,11 @@ export const CallProvider = ({ children }) => {
     const { callType, callId } = outgoingCall;
     const call = client.call(callType, callId);
 
-    let hasJoined = false;
+    // Reset hasJoinedRef when outgoingCall starts
+    hasJoinedRef.current = false;
 
     const timeout = setTimeout(async () => {
-      if (!hasJoined) {
+      if (!hasJoinedRef.current) {
         try {
           await call.endCall();
         } catch (e) {
@@ -289,24 +302,49 @@ export const CallProvider = ({ children }) => {
     }, 60000);
 
     const onParticipantJoined = (ev) => {
-      if (hasJoined) return;
+      if (hasJoinedRef.current) return;
 
-      const participantUserId = ev.participant?.userId;
-      const currentUserId = client.user.id;
+      // Log the entire event to understand structure
+      console.log('Full event object:', {
+        event: ev,
+        participant: ev.participant,
+        user: ev.user,
+        callCid: ev.call_cid
+      });
 
-      if (!participantUserId) return;
+      // GetStream structure: ev.participant.user.id (nested, not ev.participant.user_id)
+      const participantUserId = ev.participant?.user?.id || ev.participant?.userId || ev.user?.id;
+      // Sanitize both IDs for proper comparison
+      const sanitizedParticipantId = sanitizeUserId(participantUserId);
+      const sanitizedCurrentUserId = sanitizeUserId(currentUserId);
+
+      console.log('Outgoing call - participant joined:', {
+        participantUserId,
+        sanitizedParticipantId,
+        sanitizedCurrentUserId,
+        isCurrentUser: sanitizedParticipantId === sanitizedCurrentUserId,
+        hasJoined: hasJoinedRef.current
+      });
+
+      if (!participantUserId) {
+        console.error('Could not extract participant user ID from event');
+        return;
+      }
 
       //  Nếu chính mình join → bỏ qua
-      if (participantUserId === currentUserId) {
+      if (sanitizedParticipantId === sanitizedCurrentUserId) {
+        console.log('Skipping - current user joined');
         return;
       }
 
       //  Receiver đã join
-      hasJoined = true;
+      console.log('Receiver joined! Caller auto-joining...');
+      hasJoinedRef.current = true;
       clearTimeout(timeout);
 
       call.join()
         .then(() => {
+          console.log('Caller successfully joined active call');
           setActiveCall(call);
           setOutgoingCall(null);
           toast.success('Đã kết nối');
@@ -317,19 +355,37 @@ export const CallProvider = ({ children }) => {
         });
     };
 
+    // Fallback: after 2 seconds, check if receiver has joined but event was missed
+    const fallbackCheck = setTimeout(async () => {
+      if (hasJoinedRef.current) return;
+      try {
+        await call.get();
+        const participants = call.state?.participants || [];
+        // If there are 2+ participants and one is not the current user, force join
+        const sanitizedCurrentUserId = sanitizeUserId(currentUserId);
+        const other = participants.find(p => sanitizeUserId(p.userId) !== sanitizedCurrentUserId);
+        if (other) {
+          console.log('Fallback: Detected receiver joined, forcing caller to join.');
+          hasJoinedRef.current = true;
+          clearTimeout(timeout);
+          await call.join();
+          setActiveCall(call);
+          setOutgoingCall(null);
+          toast.success('Đã kết nối (fallback)');
+        }
+      } catch (e) {
+        // ignore
+      }
+    }, 2000);
+
     const onParticipantLeft = (ev) => {
-      //const userId = ev.participant?.user_id;
-      //const sanitizedUserId = userId ? sanitizeUserId(userId) : null;
-      //const currentUserSanitized = client.user?.id;
-      //
-      //if (sanitizedUserId && sanitizedUserId !== currentUserSanitized && !hasJoined) {
-      //  clearTimeout(timeout);
-      //  setOutgoingCall(null);
-      //  toast('Cuộc gọi bị từ chối');
-      //}
       const userId = ev.participant?.user_id;
-      if (userId && userId !== client.user.id && !hasJoined) {
+      const sanitizedUserId = sanitizeUserId(userId);
+      const sanitizedCurrentUserId = sanitizeUserId(currentUserId);
+
+      if (sanitizedUserId && sanitizedUserId !== sanitizedCurrentUserId && !hasJoinedRef.current) {
         clearTimeout(timeout);
+        clearTimeout(fallbackCheck);
         setOutgoingCall(null);
         toast('Cuộc gọi bị từ chối');
       }
@@ -337,6 +393,7 @@ export const CallProvider = ({ children }) => {
 
     const onCallEnded = () => {
       clearTimeout(timeout);
+      clearTimeout(fallbackCheck);
       setOutgoingCall(null);
       setActiveCall(null);
     };
@@ -347,6 +404,7 @@ export const CallProvider = ({ children }) => {
 
     return () => {
       clearTimeout(timeout);
+      clearTimeout(fallbackCheck);
       call.off('call.session_participant_joined', onParticipantJoined);
       call.off('call.session_participant_left', onParticipantLeft);
       call.off('call.ended', onCallEnded);
@@ -372,6 +430,7 @@ export const CallProvider = ({ children }) => {
       setIncomingCall(null);
     };
 
+
     incomingCall.on('call.ended', onCallEnded);
 
     return () => {
@@ -394,28 +453,57 @@ export const CallProvider = ({ children }) => {
     const onParticipantLeft = (ev) => {
       const userId = ev.participant?.user_id;
       const sanitizedUserId = userId ? sanitizeUserId(userId) : null;
-      const currentUserSanitized = client.user?.id;
+      const currentUserSanitized = sanitizeUserId(currentUserId);
 
       if (sanitizedUserId && sanitizedUserId !== currentUserSanitized) {
+        // For 1-on-1 calls: immediately end the call when the other person leaves
+        if (isOneOnOneCall(activeCall)) {
+          setActiveCall(null);
+          setIncomingCall(null);
+          setOutgoingCall(null);
+          toast('Người kia đã rời khỏi cuộc gọi');
+        }
+        // For group calls: only show notification, don't end call
+        else {
+          toast('Một người đã rời khỏi cuộc gọi');
+        }
+      }
+    };
+
+    // For group calls: end active call if session ends (all participants left)
+    const onSessionEnded = () => {
+      if (!isOneOnOneCall(activeCall)) {
         setActiveCall(null);
         setIncomingCall(null);
         setOutgoingCall(null);
-        toast('Người kia đã rời khỏi cuộc gọi');
+        toast('Tất cả mọi người đã rời khỏi cuộc gọi');
       }
     };
 
     activeCall.on('call.ended', onCallEnded);
     activeCall.on('call.session_participant_left', onParticipantLeft);
+    activeCall.on('call.session_ended', onSessionEnded);
 
     return () => {
       activeCall.off('call.ended', onCallEnded);
       activeCall.off('call.session_participant_left', onParticipantLeft);
+      activeCall.off('call.session_ended', onSessionEnded);
     };
   }, [activeCall, client]);
 
   // ==================== ACTIONS ====================
-  const startCall = useCallback(({ callId, callType, receiverName, isAudioOnly = false }) => {
-    setOutgoingCall({ callId, callType, receiverName, isAudioOnly, startedAt: Date.now() });
+  // Sửa: nhận thêm participants và conversationId để hỗ trợ group call
+  const startCall = useCallback(({ callId, callType, receiverName, isAudioOnly = false, participants = [], conversationId = null, call = null }) => {
+    setOutgoingCall({
+      callId,
+      callType,
+      receiverName,
+      isAudioOnly,
+      startedAt: Date.now(),
+      participants,
+      conversationId,
+      call, // lưu lại call object nếu có
+    });
   }, []);
 
   const cancelOutgoing = useCallback(async () => {

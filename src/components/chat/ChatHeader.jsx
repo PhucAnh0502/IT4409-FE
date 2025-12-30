@@ -74,7 +74,7 @@ const ChatHeader = ({ close, message, toggleSidebar }) => {
       const callId = generateCallId(conversationId);
       const call = client.call('default', callId);
 
-      // Create and join the call
+      // Create the call (but don't join yet - wait for receiver to accept)
       await call.getOrCreate({
         ring: true,
         data: {
@@ -87,9 +87,6 @@ const ChatHeader = ({ close, message, toggleSidebar }) => {
         },
       });
 
-      // Join as caller
-      await call.join();
-
       // Set outgoing call state with call object
       startCall({
         receiverName: callParticipants[0]?.name || 'Người dùng',
@@ -97,6 +94,8 @@ const ChatHeader = ({ close, message, toggleSidebar }) => {
         callId,
         callType: 'default',
         call,
+        participants: callParticipants,
+        conversationId,
       });
 
       toast.dismiss(loadingToast);

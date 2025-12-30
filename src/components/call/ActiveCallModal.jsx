@@ -218,14 +218,20 @@ const ActiveCallModal = () => {
 
   // Get and sort participants - current user first
   const participants = activeCall.state?.participants || [];
-  // Xóa phần tử đầu tiên (current user) khỏi mảng participants
-  const filteredParticipants = participants.slice(1);
-
   const currentUserId = getUserIdFromToken();
-  console.log('Participants after removing first:', filteredParticipants, currentUserId);
 
-  // Sort: current user first, then others
-  const sortedParticipants = [...filteredParticipants].sort((a, b) => {
+  console.log('ActiveCall participants:', {
+    total: participants.length,
+    participants: participants.map(p => ({
+      userId: p.userId,
+      user_id: p.user_id,
+      name: p.name
+    })),
+    currentUserId
+  });
+
+  // Sort: current user first, then others (show all participants)
+  const sortedParticipants = [...participants].sort((a, b) => {
     const aId = sanitizeUserId(a.userId || a.user_id || '');
     const bId = sanitizeUserId(b.userId || b.user_id || '');
     const currentSanitized = sanitizeUserId(currentUserId || '');
@@ -283,10 +289,10 @@ const ActiveCallModal = () => {
                     const participantId = sanitizeUserId(participant.userId || participant.user_id || '');
                     const currentSanitized = sanitizeUserId(currentUserId || '');
                     const isCurrentUser = participantId === currentUserId;
-
+                    // fix: use unique key (userId or fallback)
                     return (
                       <ParticipantPattern
-                        key={participant.userName}
+                        key={participantId || participant.userName || Math.random()}
                         participant={participant}
                         isCurrentUser={isCurrentUser}
                         isAudioOnly={isAudioOnly}
