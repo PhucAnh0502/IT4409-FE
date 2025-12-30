@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { StreamVideoClient } from '@stream-io/video-react-sdk';
 import { getStreamToken } from '../lib/tokenService';
@@ -222,7 +223,7 @@ export const CallProvider = ({ children }) => {
           const isAudioOnly = ev.call?.custom?.isAudioOnly || false;
           const participantCount = ev.call?.custom?.participantCount || 2;
 
-          setIncomingCall({ ...call, callerName, isAudioOnly, participantCount });
+          setIncomingCall(call);
         });
       } catch (e) {
         console.error('StreamVideo init error:', e);
@@ -415,6 +416,7 @@ export const CallProvider = ({ children }) => {
   useEffect(() => {
     if (!client || !incomingCall) return;
 
+    // Timeout: auto-reject after 60s if not answered
     const timeout = setTimeout(async () => {
       try {
         await incomingCall.leave({ reject: true });
@@ -425,17 +427,42 @@ export const CallProvider = ({ children }) => {
       toast('Cuộc gọi đến đã hết hạn');
     }, 60000);
 
+    // Event: call ended (by all participants or ended by server)
     const onCallEnded = () => {
       clearTimeout(timeout);
       setIncomingCall(null);
+      toast('Cuộc gọi đã kết thúc');
     };
 
+    // Event: session ended (all participants left)
+    const onSessionEnded = () => {
+      clearTimeout(timeout);
+      setIncomingCall(null);
+      toast('Cuộc gọi đã kết thúc (mọi người đã rời)');
+    };
 
-    incomingCall.on('call.ended', onCallEnded);
+    // Attach listeners to the correct call object
+    if (typeof incomingCall.on === 'function') {
+      incomingCall.on('call.ended', onCallEnded);
+      incomingCall.on('call.session_ended', onSessionEnded);
+    }
+
+    // Fallback polling: check every 2s if call has ended (in case event missed)
+    const poll = setInterval(() => {
+      if (incomingCall?.state?.hasEnded) {
+        clearTimeout(timeout);
+        setIncomingCall(null);
+        toast('Cuộc gọi đã kết thúc');
+      }
+    }, 2000);
 
     return () => {
       clearTimeout(timeout);
-      incomingCall.off('call.ended', onCallEnded);
+      clearInterval(poll);
+      if (typeof incomingCall.off === 'function') {
+        incomingCall.off('call.ended', onCallEnded);
+        incomingCall.off('call.session_ended', onSessionEnded);
+      }
     };
   }, [client, incomingCall]);
 
