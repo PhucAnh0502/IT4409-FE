@@ -102,7 +102,7 @@ const ChatHeader = ({ close, message, toggleSidebar }) => {
       toast.dismiss(loadingToast);
       toast.success("Đang đổ chuông...");
     } catch (error) {
-      console.error("❌ Error starting call:", error);
+      console.error(" Error starting call:", error);
       toast.dismiss();
       toast.error("Không thể bắt đầu cuộc gọi. Vui lòng thử lại.");
     } finally {

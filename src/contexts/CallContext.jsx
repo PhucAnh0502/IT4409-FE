@@ -91,9 +91,9 @@ export const CallProvider = ({ children }) => {
         //console.log('Fetching userName from API for userId:', currentUserId);
         let userName = authUser?.userName;
         //if (!userName) {
-        //  console.log('👤 Fetching userName from API for userId:', currentUserId);
+        //  console.log('Fetching userName from API for userId:', currentUserId);
         //  userName = await getUserName(currentUserId);
-        //  console.log('✅ Fetched userName:', userName);
+        //  console.log('Fetched userName:', userName);
         //}
 
         //console.log('Creating StreamVideoClient with:', {
@@ -288,55 +288,33 @@ export const CallProvider = ({ children }) => {
       }
     }, 60000);
 
-    const onParticipantJoined = () => {
-      //console.log('=== PARTICIPANT JOINED (Outgoing Call) ===');
-      //console.log('Event:', ev);
-      //console.log('Participant:', ev.participant);
-      //
-      //const participantUserId = ev.participant?.userId;
-      //const currentUserSanitized = client.userId;
-      //
-      //// Sanitize for comparison
-      //const sanitizedParticipantId = participantUserId ? sanitizeUserId(participantUserId) : null;
-      //
-      //console.log('Participant ID (sanitized):', sanitizedParticipantId);
-      //console.log('Current User ID:', currentUserSanitized);
-      //console.log('Are different?:', sanitizedParticipantId !== currentUserSanitized);
+    const onParticipantJoined = (ev) => {
+      if (hasJoined) return;
 
-      if (hasJoined) {
-        console.log('Already joined, skipping');
+      const participantUserId = ev.participant?.userId;
+      const currentUserId = client.user.id;
+
+      if (!participantUserId) return;
+
+      //  Nếu chính mình join → bỏ qua
+      if (participantUserId === currentUserId) {
         return;
       }
+
+      //  Receiver đã join
       hasJoined = true;
       clearTimeout(timeout);
 
-      call.join().then(() => {
-        setActiveCall(call);
-        setOutgoingCall(null);
-      }).catch(err => {
-        console.error('Caller auto-join failed', err);
-        setOutgoingCall(null);
-      });
-
-      // Check if it's the receiver (not caller) who joined
-      //if (sanitizedParticipantId && sanitizedParticipantId !== currentUserSanitized) {
-      //  console.log('>>> RECEIVER JOINED! Auto-joining as caller...');
-      //  hasJoined = true;
-      //  clearTimeout(timeout);
-      //
-      //  call.join().then(() => {
-      //    console.log('Caller joined successfully');
-      //    setActiveCall(call);
-      //    setOutgoingCall(null);
-      //    toast.success('Đã kết nối');
-      //  }).catch(err => {
-      //    console.error('Caller auto-join failed', err);
-      //    setOutgoingCall(null);
-      //    toast.error('Không thể tham gia cuộc gọi');
-      //  });
-      //} else {
-      //  console.log('Skipped: Same user or no participant ID');
-      //}
+      call.join()
+        .then(() => {
+          setActiveCall(call);
+          setOutgoingCall(null);
+          toast.success('Đã kết nối');
+        })
+        .catch(err => {
+          console.error('Caller auto-join failed', err);
+          setOutgoingCall(null);
+        });
     };
 
     const onParticipantLeft = (ev) => {

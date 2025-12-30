@@ -3,7 +3,7 @@ import {API} from "../lib/api";
 
 export const getStreamToken = async (userId) => {
   try {
-    console.log('📡 Requesting GetStream token for userId:', userId);
+    console.log(' Requesting GetStream token for userId:', userId);
 
     const response = await authAxiosInstance.post(API.VIDEOCALL.GET_TOKEN, {
       UserIds: [userId], 
@@ -17,7 +17,7 @@ export const getStreamToken = async (userId) => {
     const tokenMap = data?.Token || data?.token;
 
     if (!tokenMap) {
-      console.error('❌ Cấu trúc Response không khớp:', data);
+      console.error(' Cấu trúc Response không khớp:', data);
       throw new Error('Không tìm thấy dữ liệu Token trong phản hồi từ server');
     }
 
@@ -37,7 +37,7 @@ export const getStreamToken = async (userId) => {
     return token.replace(/"/g, '').trim(); // Xóa dấu ngoặc kép nếu có
 
   } catch (error) {
-    console.error('❌ Error in getStreamToken:', error);
+    console.error(' Error in getStreamToken:', error);
     throw error;
   }
 };
