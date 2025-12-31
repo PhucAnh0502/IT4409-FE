@@ -97,7 +97,7 @@ const ChatContainer = ({
     messageId: null,
   });
 
-  // Join conversation khi mở ChatContainer
+  // Join conversation khi mở ChatContainer.
   useEffect(() => {
     if (!conversationId || !connection) return;
 
@@ -114,14 +114,7 @@ const ChatContainer = ({
 
     joinConversation();
 
-    // Cleanup: leave conversation khi unmount hoặc chuyển conversation
-    return () => {
-      if (connection && connection.state === signalR.HubConnectionState.Connected) {
-        connection.invoke("LeaveConversation", conversationId.toString())
-          .then(() => console.log("Left conversation:", conversationId))
-          .catch(err => console.error("Failed to leave conversation:", err));
-      }
-    };
+    return () => {};
   }, [conversationId, connection]);
 
   useEffect(() => {
@@ -266,10 +259,10 @@ const ChatContainer = ({
                       <img
                         src={
                           isMe
-                            ? message.senderAvatarUrl || "/default-avatar.png"
+                            ? message.senderAvatarUrl || "/default_avatar.jpg"
                             : message.receiverAvatarUrl ||
                             message.senderAvatarUrl ||
-                            "/default-avatar.png"
+                            "/default_avatar.jpg"
                         }
                         alt="avatar"
                       />

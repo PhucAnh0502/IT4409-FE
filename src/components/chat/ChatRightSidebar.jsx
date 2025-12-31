@@ -173,7 +173,7 @@ const ChatRightSidebar = ({ conversation, onClose }) => {
                   <div className="flex items-center gap-3">
                      <div className="avatar placeholder">
                         <div className="bg-neutral text-neutral-content rounded-full w-9 h-9">
-                          <img src={member.avatarUrl || "/default-avatar.png"} alt="avt" className="object-cover"/>
+                          <img src={member.avatarUrl || "/default_avatar.jpg"} alt="avt" className="object-cover"/>
                         </div>
                      </div>
                      <div className="flex flex-col">

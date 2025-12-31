@@ -50,16 +50,14 @@ const useSignalR = (hubUrl) => {
 
         const startConnection = async () => {
             if (retryCountRef.current >= maxRetries) {
-                console.log("SignalR: Max retries reached, giving up");
                 return;
             }
 
             try {
                 await newConnection.start();
-                console.log("SignalR Connected");
                 retryCountRef.current = 0;
             } catch (error) {
-                console.warn("SignalR Connection failed:", error?.message);
+                // ignore
                 retryCountRef.current++;
                 
                 // Retry after delay if not at max retries
@@ -76,7 +74,7 @@ const useSignalR = (hubUrl) => {
         return () => {
             if (connectionRef.current) {
                 connectionRef.current.stop()
-                    .then(() => console.log("SignalR Disconnected"))
+                    .then(() => console.log("SignalR disconnected"))
                     .catch((err) => console.warn("SignalR disconnect error:", err?.message));
             }
         }

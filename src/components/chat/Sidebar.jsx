@@ -57,7 +57,12 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
     const joinAllConversations = async () => {
       try {
         if (connection.state !== signalR.HubConnectionState.Connected) {
-          return;
+          try {
+            await connection.start();
+          } catch (e) {
+            console.error("SignalR not connected, skip join:", e?.message);
+            return;
+          }
         }
         
         for (const conv of conversations) {
@@ -77,7 +82,7 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
 
     joinAllConversations();
 
-  }, [connection, conversations?.length]);
+  }, [connection, connection?.state, conversations?.length]);
 
   const handleRandomChat = async () => {
     try {
@@ -238,7 +243,7 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
             <div className="avatar relative">
               <div className="w-12 h-12 rounded-full overflow-hidden">
                 <img
-                  src={conversation.avatarUrl || "/default-avatar.png"}
+                  src={conversation.avatarUrl || "/default_avatar.jpg"}
                   alt={conversation.name}
                   className="object-cover w-full h-full"
                 />

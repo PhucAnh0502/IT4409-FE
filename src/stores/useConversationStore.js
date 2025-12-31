@@ -150,8 +150,16 @@ export const useConversationStore = create((set, get) => ({
             const sid = String(state.selectedConversation);
             const isCurrentChat = sid === cid;
 
+            const normalizedMessage = {
+                reactions: message.reactions || [],
+                ...message,
+                id: message.id || message.messageId || message.MessageId || message._id,
+                messageId: message.messageId || message.MessageId || message.id || message._id,
+                createdAt: message.createdAt || message.CreatedAt || message.timestamp || message.Timestamp || new Date().toISOString(),
+            };
+
             const updatedMessages = isCurrentChat
-                ? [...state.messages, message]
+                ? [...state.messages, normalizedMessage]
                 : state.messages;
 
             let updatedConversations = [...state.conversations];
@@ -162,9 +170,9 @@ export const useConversationStore = create((set, get) => ({
             if (idx !== -1) {
                 const updatedConv = {
                     ...updatedConversations[idx],
-                    lastMessageContent: message.content || (message.mediaUrls?.length > 0 ? "[Media]" : ""),
-                    lastMessageTime: message.timestamp || new Date().toISOString(),
-                    lastMessageSenderAvatarUrl: message.senderAvatarUrl,
+                    lastMessageContent: normalizedMessage.content || (normalizedMessage.mediaUrls?.length > 0 ? "[Media]" : ""),
+                    lastMessageTime: normalizedMessage.createdAt || normalizedMessage.timestamp || normalizedMessage.Timestamp || new Date().toISOString(),
+                    lastMessageSenderAvatarUrl: normalizedMessage.senderAvatarUrl,
                     isRead: isCurrentChat,
                 };
 
@@ -175,10 +183,10 @@ export const useConversationStore = create((set, get) => ({
                     {
                         id: conversationId,
                         conversationId,
-                        name: message.receiverUserName || message.senderUserName || "New conversation",
-                        avatarUrl: message.receiverAvartarUrl || message.receiverAvatarUrl || message.senderAvatarUrl,
-                        lastMessageContent: message.content || (message.mediaUrls?.length > 0 ? "[Media]" : ""),
-                        lastMessageTime: message.createdAt || message.timestamp || new Date().toISOString(),
+                        name: normalizedMessage.receiverUserName || normalizedMessage.senderUserName || "New conversation",
+                        avatarUrl: normalizedMessage.receiverAvartarUrl || normalizedMessage.receiverAvatarUrl || normalizedMessage.senderAvatarUrl,
+                        lastMessageContent: normalizedMessage.content || (normalizedMessage.mediaUrls?.length > 0 ? "[Media]" : ""),
+                        lastMessageTime: normalizedMessage.createdAt || normalizedMessage.timestamp || normalizedMessage.Timestamp || new Date().toISOString(),
                         isRead: isCurrentChat,
                     },
                     ...updatedConversations,
@@ -213,7 +221,15 @@ export const useConversationStore = create((set, get) => ({
         const  { messageId, reactionType, userId, action } = payload;
         set((state) => ({
             messages: state.messages.map((msg) => {
-                if (msg.id !== messageId) return msg;
+                const sameId =
+                    msg.id === messageId ||
+                    msg.messageId === messageId ||
+                    msg.MessageId === messageId ||
+                    String(msg.id) === String(messageId) ||
+                    String(msg.messageId) === String(messageId) ||
+                    String(msg.MessageId) === String(messageId);
+
+                if (!sameId) return msg;
 
                 let updatedReactions = [...(msg.reactions || [])];
 

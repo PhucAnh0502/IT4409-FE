@@ -3,8 +3,6 @@ import {API} from "../lib/api";
 
 export const getStreamToken = async (userId) => {
   try {
-    console.log('📡 Requesting GetStream token for userId:', userId);
-
     const response = await authAxiosInstance.post(API.VIDEOCALL.GET_TOKEN, {
       UserIds: [userId], 
     });
