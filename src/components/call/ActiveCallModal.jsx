@@ -47,7 +47,7 @@ const ParticipantPattern = ({ participant, isCurrentUser, isAudioOnly }) => {
               : participantId
         );
       } catch (error) {
-        console.error(`Lỗi lấy thông tin user ${participantId}:`, error);
+        
         setDisplayName('Error');
       }
     };
@@ -144,10 +144,10 @@ const ActiveCallModal = () => {
       activeCall.camera.enable()
         .then(() => {
           setIsVideoOn(true);
-          console.log('Camera enabled for video call');
+          
         })
         .catch(err => {
-          console.error('Error enabling camera:', err);
+          
           // If camera fails to enable, set state to false
           setIsVideoOn(false);
         });
@@ -237,15 +237,7 @@ const ActiveCallModal = () => {
   const participants = activeCall.state?.participants || [];
   const currentUserId = getUserIdFromToken();
 
-  console.log('ActiveCall participants:', {
-    total: participants.length,
-    participants: participants.map(p => ({
-      userId: p.userId,
-      user_id: p.user_id,
-      name: p.name
-    })),
-    currentUserId
-  });
+  
 
   // Sort: current user first, then others (show all participants)
   const sortedParticipants = [...participants].sort((a, b) => {

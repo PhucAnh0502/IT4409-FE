@@ -37,7 +37,7 @@ export const generateCallId = (conversationId) => {
  * Lấy danh sách participants từ conversation
  */
 export const getCallParticipants = (conversation, currentUserId) => {
-  console.log("getCallParticipants - Input:", { conversation, currentUserId });
+  
   
   if (!conversation) {
     console.error("No conversation provided");
@@ -48,7 +48,7 @@ export const getCallParticipants = (conversation, currentUserId) => {
   
   // Trường hợp 1: Group chat với members
   if (conversation.isGroup && conversation.members && Array.isArray(conversation.members)) {
-    console.log("Group chat detected with members:", conversation.members);
+   
     conversation.members.forEach(member => {
       const memberId = member.userId || member.id || member.user?.id;
       if (memberId && memberId !== currentUserId) {
@@ -62,7 +62,7 @@ export const getCallParticipants = (conversation, currentUserId) => {
   
   // Trường hợp 2: Chat với participants array
   else if (conversation.participants && Array.isArray(conversation.participants)) {
-    console.log("Chat with participants array:", conversation.participants);
+    
     conversation.participants.forEach(p => {
       const pId = p.userId || p.id || p.user?.id;
       if (pId && pId !== currentUserId) {
@@ -76,7 +76,7 @@ export const getCallParticipants = (conversation, currentUserId) => {
   
   // Trường hợp 3: Chat 1-1 với receiverId
   else if (conversation.receiverId && conversation.receiverId !== currentUserId) {
-    console.log("1-1 chat detected with receiverId:", conversation.receiverId);
+   
     participants.push({
       userId: conversation.receiverId,
       name: conversation.receiverName || conversation.name || conversation.receiverId,
@@ -85,7 +85,7 @@ export const getCallParticipants = (conversation, currentUserId) => {
   
   // Trường hợp 4: Fallback - tìm trong tất cả các fields có thể
   else {
-    console.log("Trying fallback methods...");
+    
     
     // Thử lấy từ user/receiver object
     const receiver = conversation.receiver || conversation.user;
@@ -100,6 +100,6 @@ export const getCallParticipants = (conversation, currentUserId) => {
     }
   }
   
-  console.log("getCallParticipants - Output:", participants);
+  
   return participants;
 };

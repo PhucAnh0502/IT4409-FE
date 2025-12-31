@@ -38,9 +38,7 @@ const ChatHeader = ({ close, message, toggleSidebar }) => {
     }
     let currentUserName = authUser?.userName;
     if (!currentUserName) {
-      console.log('Fetching userName from API...');
       currentUserName = await getUserName(currentUserId);
-      console.log('Fetched userName:', currentUserName);
     }
 
     try {
@@ -101,7 +99,7 @@ const ChatHeader = ({ close, message, toggleSidebar }) => {
       toast.dismiss(loadingToast);
       toast.success("Đang đổ chuông...");
     } catch (error) {
-      console.error(" Error starting call:", error);
+      
       toast.dismiss();
       toast.error("Không thể bắt đầu cuộc gọi. Vui lòng thử lại.");
     } finally {

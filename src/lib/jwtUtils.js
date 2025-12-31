@@ -49,7 +49,7 @@ export const extractUserInfo = (authUser) => {
     return { userId: null, userName: null };
   }
   
-  console.log("Extracting user info from:", authUser);
+  
   
   // Thử lấy userId từ nhiều nguồn
   let userId = authUser.id || 
@@ -60,12 +60,12 @@ export const extractUserInfo = (authUser) => {
   // Nếu không có, thử decode từ token
   if (!userId && authUser.token) {
     userId = getUserIdFromToken(authUser.token);
-    console.log("Extracted userId from token:", userId);
+   
   }
   
   if (!userId && authUser.accessToken) {
     userId = getUserIdFromToken(authUser.accessToken);
-    console.log("Extracted userId from accessToken:", userId);
+    
   }
   
   // Lấy userName
@@ -75,7 +75,7 @@ export const extractUserInfo = (authUser) => {
                    authUser.user?.name ||
                    userId;
   
-  console.log("Final extracted info:", { userId, userName });
+  
   
   return { userId, userName };
 };
