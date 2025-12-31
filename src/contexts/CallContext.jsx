@@ -223,7 +223,13 @@ export const CallProvider = ({ children }) => {
           const isAudioOnly = ev.call?.custom?.isAudioOnly || false;
           const participantCount = ev.call?.custom?.participantCount || 2;
 
-          setIncomingCall(call);
+          // Attach metadata to call object so UI components can access it
+          setIncomingCall({
+            ...call,
+            callerName,
+            isAudioOnly,
+            participantCount
+          });
         });
       } catch (e) {
         console.error('StreamVideo init error:', e);
