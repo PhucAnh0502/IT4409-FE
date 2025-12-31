@@ -196,7 +196,7 @@ const FriendModal = ({
                     <div className="avatar">
                       <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-base-200 group-hover:ring-primary/50 transition-all">
                         <img
-                          src={friend.friendAvatarUrl || "/default-avatar.png"}
+                          src={friend.friendAvatarUrl || "/default_avatar.jpg"}
                           alt={friend.friendUserName}
                           className="object-cover"
                         />

@@ -125,7 +125,7 @@ const AddMemberModal = ({
                   <div className="avatar">
                     <div className="w-10 rounded-full border border-base-300">
                       <img
-                        src={user.friendAvatarUrl || "/default-avatar.png"}
+                        src={user.friendAvatarUrl || "/default_avatar.jpg"}
                         alt="avt"
                       />
                     </div>

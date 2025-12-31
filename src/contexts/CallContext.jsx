@@ -46,12 +46,6 @@ export const CallProvider = ({ children }) => {
   // Initialize StreamVideoClient
   useEffect(() => {
     const authToken = getToken();
-    console.log('CallContext: Initializing client...', {
-      hasToken: !!authToken,
-      hasAuthUser: !!authUser,
-      currentUserId,
-      currentUserName
-    });
 
     if (!authToken || !currentUserId) {
       console.warn('CallContext: Missing auth token or currentUserId', {
@@ -112,21 +106,16 @@ export const CallProvider = ({ children }) => {
           token: streamToken,
         });
 
-        console.log('StreamVideoClient created successfully');
-
         if (!mounted) {
           console.log('Component unmounted, not setting client');
           return;
         }
 
         setClient(videoClient);
-        console.log('Client set in state');
 
         // Check for any pending/ringing calls that may have been initiated while user was offline
         const checkForPendingCalls = async () => {
           try {
-            console.log('Checking for pending calls...');
-
             // Query for calls where current user is a member
             const { calls } = await videoClient.queryCalls({
               filter_conditions: {
@@ -135,8 +124,6 @@ export const CallProvider = ({ children }) => {
               sort: [{ field: 'created_at', direction: -1 }], // Keep as is, we'll sort manually
               limit: 10,
             });
-
-            console.log('Found calls:', calls.length);
 
             // Collect all valid pending calls
             const validCalls = [];
@@ -151,18 +138,6 @@ export const CallProvider = ({ children }) => {
               const hasJoined = currentUserParticipant?.joinedAt != null;
               const hasSession = state.session != null;
               const hasEnded = state.endedAt != null;
-
-              console.log('Call state:', {
-                id: call.id,
-                callingState: state.callingState,
-                hasSession,
-                hasEnded,
-                hasJoined,
-                participantCount: participants.length,
-                createdBy: state.createdBy?.id,
-                createdAt: state.createdAt,
-                custom: state.custom
-              });
 
               // Check if call is active and waiting for this user to join
               if (!hasEnded && state.createdBy?.id !== sanitized && !hasJoined &&
@@ -179,15 +154,12 @@ export const CallProvider = ({ children }) => {
               }
             }
 
-            console.log('Valid pending calls:', validCalls.length);
-
             // Sort valid calls by createdAt ascending (oldest first)
             validCalls.sort((a, b) => a.createdAt - b.createdAt);
 
             // Show the first (oldest) call
             if (validCalls.length > 0) {
               const firstCall = validCalls[0];
-              console.log('Showing oldest pending call:', firstCall.call.id, 'created at', new Date(firstCall.createdAt));
 
               setIncomingCall({
                 ...firstCall.call,
