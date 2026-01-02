@@ -1,7 +1,11 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
 const ImageModal = ({ isOpen, onClose, images, currentIndex, onNext, onPrev }) => {
+  const [slideDirection, setSlideDirection] = useState(0); // 1: next, -1: prev
+  const [animKey, setAnimKey] = useState(0);
+  const lastIndex = useRef(null);
+
 useEffect(() => {
     const handleKeyDown = (e) => {
         if (!isOpen) return;
@@ -13,6 +17,17 @@ useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
 }, [isOpen, onNext, onPrev, onClose]);
+
+  useEffect(() => {
+    if (lastIndex.current === null) {
+      lastIndex.current = currentIndex;
+      return;
+    }
+    const dir = currentIndex > lastIndex.current ? 1 : -1;
+    setSlideDirection(dir);
+    setAnimKey((k) => k + 1);
+    lastIndex.current = currentIndex;
+  }, [currentIndex]);
 
   if (!isOpen || !images || images.length === 0) return null;
 
@@ -42,11 +57,22 @@ useEffect(() => {
           </button>
         )}
 
-        <img 
-          src={currentSrc} 
-          alt="Full View" 
-          className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl select-none"
-        />
+        <div
+          key={animKey}
+          className={`max-w-full max-h-[90vh] flex items-center justify-center ${
+            slideDirection === 0
+              ? ""
+              : slideDirection > 0
+              ? "animate-slide-next"
+              : "animate-slide-prev"
+          }`}
+        >
+          <img 
+            src={currentSrc} 
+            alt="Full View" 
+            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl select-none"
+          />
+        </div>
 
         {showNav && (
           <button 

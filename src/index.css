@@ -39,6 +39,33 @@
   }
 }
 
+@keyframes slideInUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideNext {
+  from { opacity: 0; transform: translateX(20%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slidePrev {
+  from { opacity: 0; transform: translateX(-20%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-slideInUp {
+  animation: slideInUp 0.3s ease-out forwards;
+}
+
+.animate-slide-next {
+  animation: slideNext 0.25s ease-out;
+}
+
+.animate-slide-prev {
+  animation: slidePrev 0.25s ease-out;
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-out;
 }
