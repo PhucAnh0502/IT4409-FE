@@ -187,7 +187,7 @@ const AddFriendModal = ({ isOpen, onClose }) => {
     return createPortal(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={handleClose}>
             <div
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-[500px] flex flex-col md:max-h-[80vh] max-h-[90vh]"
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-[500px] flex flex-col md:max-h-[80vh] max-h-[90vh] animate-slideInUp"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -266,36 +266,41 @@ const AddFriendModal = ({ isOpen, onClose }) => {
                                             </div>
 
                                             {/* Message Input - Slides down when expanded */}
-                                            {expandedUserId === user.id && (
-                                                <div className="overflow-hidden animate-in slide-in-from-top-2 duration-200">
-                                                    <div className="px-2 pb-2 pt-1">
-                                                        <div className="bg-[#F0F2F5] rounded-lg p-3 border border-primary/20">
-                                                            <label className="text-[13px] font-semibold text-[#65676B] mb-1 block">
-                                                                Add a message (optional)
-                                                            </label>
-                                                            <textarea
-                                                                value={userMessages[user.id] || ''}
-                                                                onChange={(e) => handleMessageChange(user.id, e.target.value)}
-                                                                placeholder="Hi, let's be friends!"
-                                                                className="w-full bg-white text-[15px] rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-primary/30 text-[#050505] placeholder-[#65676B] resize-none"
-                                                                rows={2}
-                                                                maxLength={200}
-                                                            />
-                                                            <div className="flex items-center justify-between mt-2">
-                                                                <button
-                                                                    onClick={() => setExpandedUserId(null)}
-                                                                    className="text-[13px] text-[#65676B] hover:text-[#050505] font-medium transition-colors"
-                                                                >
-                                                                    Cancel
-                                                                </button>
-                                                                <span className="text-[12px] text-[#65676B]">
-                                                                    {(userMessages[user.id] || '').length}/200
-                                                                </span>
-                                                            </div>
+                                            <div
+                                                className="overflow-hidden transition-all duration-500 ease-out"
+                                                style={{
+                                                    maxHeight: expandedUserId === user.id ? '320px' : '0px',
+                                                    opacity: expandedUserId === user.id ? 1 : 0,
+                                                    transform: expandedUserId === user.id ? 'translateY(0)' : 'translateY(-6px)'
+                                                }}
+                                            >
+                                                <div className="px-2 pb-2 pt-1">
+                                                    <div className="bg-[#F0F2F5] rounded-lg p-3 border border-primary/20">
+                                                        <label className="text-[13px] font-semibold text-[#65676B] mb-1 block">
+                                                            Add a message (optional)
+                                                        </label>
+                                                        <textarea
+                                                            value={userMessages[user.id] || ''}
+                                                            onChange={(e) => handleMessageChange(user.id, e.target.value)}
+                                                            placeholder="Hi, let's be friends!"
+                                                            className="w-full bg-white text-[15px] rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-primary/30 text-[#050505] placeholder-[#65676B] resize-none"
+                                                            rows={2}
+                                                            maxLength={200}
+                                                        />
+                                                        <div className="flex items-center justify-between mt-2">
+                                                            <button
+                                                                onClick={() => setExpandedUserId(null)}
+                                                                className="text-[13px] text-[#65676B] hover:text-[#050505] font-medium transition-colors"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                            <span className="text-[12px] text-[#65676B]">
+                                                                {(userMessages[user.id] || '').length}/200
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

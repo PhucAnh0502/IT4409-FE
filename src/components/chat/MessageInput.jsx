@@ -160,7 +160,7 @@ const MessageInput = ({ conversationId }) => {
           
           <button
             type="button"
-            className={`hidden sm:flex btn btn-circle text-emerald-500`}
+            className={`flex btn btn-circle btn-ghost text-emerald-500`}
             onClick={() => fileInputRef.current?.click()}
             disabled={isSending}
           >

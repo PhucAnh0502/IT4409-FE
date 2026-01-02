@@ -105,13 +105,11 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
     }
   };
 
-  const openFriendModal = async () => {
-    try {
-      await getFriendsList();
-      setIsFriendModalOpen(true);
-    } catch (error) {
+  const openFriendModal = () => {
+    setIsFriendModalOpen(true);
+    getFriendsList().catch((error) => {
       toast.error(error?.message || "Failed to load friends");
-    }
+    });
   };
 
   const handleCreateConversation = async (friend) => {

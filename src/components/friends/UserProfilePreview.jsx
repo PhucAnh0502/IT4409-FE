@@ -142,7 +142,7 @@ const UserProfilePreview = ({ userData, statusText = "Friend Request Sent · Wai
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-base-content/60 mb-2">Request Message</p>
-                  <p className="text-lg text-base-content leading-relaxed italic">
+                  <p className="text-lg text-base-content leading-relaxed italic break-words whitespace-pre-wrap">
                     "{displayMessage}"
                   </p>
                 </div>

@@ -1,9 +1,11 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { X } from "lucide-react";
 import { reactions as reactionConstants } from "../../constants";
 
 const ReactionDetailModal = ({ isOpen, onClose, messageReactions }) => {
   const [activeTab, setActiveTab] = useState("all");
+  const [indicatorStyle, setIndicatorStyle] = useState({ width: 0, left: 0 });
+  const tabRefs = useRef({});
 
   const existingReactionTypes = useMemo(() => {
     const types = Array.from(new Set(messageReactions.map((r) => r.reactionType)));
@@ -15,7 +17,19 @@ const ReactionDetailModal = ({ isOpen, onClose, messageReactions }) => {
     return messageReactions.filter((r) => r.reactionType === activeTab);
   }, [activeTab, messageReactions]);
 
-  if (!isOpen) return null;if (!isOpen) return null;
+  useEffect(() => {
+    const updateIndicator = () => {
+      const el = tabRefs.current[activeTab];
+      if (!el) return;
+      setIndicatorStyle({ width: el.offsetWidth, left: el.offsetLeft });
+    };
+
+    updateIndicator();
+    window.addEventListener("resize", updateIndicator);
+    return () => window.removeEventListener("resize", updateIndicator);
+  }, [activeTab, messageReactions?.length, existingReactionTypes?.length]);
+
+  if (!isOpen) return null;
 
   const getCount = (type) => {
     return messageReactions.filter((r) => r.reactionType === type).length;
@@ -27,7 +41,7 @@ const ReactionDetailModal = ({ isOpen, onClose, messageReactions }) => {
       onClick={onClose} 
     >
       <div 
-        className="bg-base-100 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
+        className="bg-base-100 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 animate-slideInUp"
         onClick={(e) => e.stopPropagation()} 
       >
         {/* Header */}
@@ -42,14 +56,20 @@ const ReactionDetailModal = ({ isOpen, onClose, messageReactions }) => {
         </div>
 
         {/* Tabs  */}
-        <div className="flex px-4 border-b border-base-300 overflow-x-auto no-scrollbar gap-2">
+        <div className="relative flex px-4 border-b border-base-300 overflow-x-auto no-scrollbar gap-2">
+          <span
+            className="absolute bottom-0 h-0.5 bg-primary transition-all duration-300"
+            style={{ width: indicatorStyle.width, transform: `translateX(${indicatorStyle.left}px)` }}
+            aria-hidden
+          />
           {/* Tab "Tất cả" */}
           <button 
             onClick={() => setActiveTab("all")}
-            className={`py-3 px-3 text-sm font-medium transition-all border-b-2 whitespace-nowrap ${
+            ref={(el) => (tabRefs.current["all"] = el)}
+            className={`py-3 px-3 text-sm font-medium transition-all whitespace-nowrap relative ${
               activeTab === "all" 
-                ? "border-primary text-primary" 
-                : "border-transparent text-base-content/60 hover:text-base-content"
+                ? "text-primary" 
+                : "text-base-content/60 hover:text-base-content"
             }`}
           >
             Tất cả ({messageReactions.length})
@@ -60,10 +80,11 @@ const ReactionDetailModal = ({ isOpen, onClose, messageReactions }) => {
             <button
               key={type.value}
               onClick={() => setActiveTab(type.value)}
-              className={`py-3 px-3 text-sm font-medium transition-all border-b-2 whitespace-nowrap flex items-center gap-1 ${
+              ref={(el) => (tabRefs.current[type.value] = el)}
+              className={`py-3 px-3 text-sm font-medium transition-all whitespace-nowrap flex items-center gap-1 relative ${
                 activeTab === type.value 
-                  ? "border-primary text-primary" 
-                  : "border-transparent text-base-content/60 hover:text-base-content"
+                  ? "text-primary" 
+                  : "text-base-content/60 hover:text-base-content"
               }`}
             >
               <span className="text-lg">{type.label}</span>

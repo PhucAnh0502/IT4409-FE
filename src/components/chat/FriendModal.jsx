@@ -83,7 +83,7 @@ const FriendModal = ({
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className={`relative bg-base-100 rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[85vh] overflow-hidden transform transition-all duration-300 ${open ? "scale-100 translate-y-0" : "scale-95 translate-y-4"}`}>
+      <div className={`relative bg-base-100 rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[85vh] overflow-hidden transform transition-all duration-300 ${open ? "scale-100 translate-y-0" : "scale-95 translate-y-4"} animate-slideInUp`}>
         
         {/* HEADER */}
         <div className="px-6 py-4 border-b border-base-200 flex justify-between items-center bg-base-100 z-20">

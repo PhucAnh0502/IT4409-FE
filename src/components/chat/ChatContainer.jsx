@@ -1,4 +1,10 @@
-import React, { useEffect, useRef, useLayoutEffect, useState, useMemo } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useLayoutEffect,
+  useState,
+  useMemo,
+} from "react";
 import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
 import ImageModal from "./ImageModal";
@@ -59,7 +65,7 @@ const DateSeparator = ({ date }) => {
 
 const ChatContainer = ({
   conversationId = null,
-  onClose = () => { },
+  onClose = () => {},
   onToggleRightSidebar,
 }) => {
   const {
@@ -219,7 +225,10 @@ const ChatContainer = ({
             const isMe = message.senderId === userId;
             const currentMessageDate = message.createdAt || message.timestamp;
             const prevMessageDate =
-              index > 0 ? messages[index - 1]?.createdAt || messages[index - 1]?.timestamp : null;
+              index > 0
+                ? messages[index - 1]?.createdAt ||
+                  messages[index - 1]?.timestamp
+                : null;
             const showDateSeparator =
               !prevMessageDate ||
               !isSameDay(currentMessageDate, prevMessageDate);
@@ -261,8 +270,8 @@ const ChatContainer = ({
                           isMe
                             ? message.senderAvatarUrl || "/default_avatar.jpg"
                             : message.receiverAvatarUrl ||
-                            message.senderAvatarUrl ||
-                            "/default_avatar.jpg"
+                              message.senderAvatarUrl ||
+                              "/default_avatar.jpg"
                         }
                         alt="avatar"
                       />
@@ -270,13 +279,16 @@ const ChatContainer = ({
                   </div>
 
                   <div
-                    className={`flex items-center gap-2 group ${isMe ? "flex-row-reverse" : "flex-row"
-                      }`}
+                    className={`flex items-center gap-2 group ${
+                      isMe ? "flex-row-reverse" : "flex-row"
+                    }`}
                   >
                     <div
-                      className={`chat-bubble flex flex-col p-3 relative shadow-sm ${isMe ? "chat-bubble-primary" : "chat-bubble-secondary"
-                        } ${images.length > 0 ? "max-w-[80%] sm:max-w-[600px]" : ""
-                        }`}
+                      className={`chat-bubble flex flex-col p-3 relative shadow-sm ${
+                        isMe ? "chat-bubble-primary" : "chat-bubble-secondary"
+                      } ${
+                        images.length > 0 ? "max-w-[80%] sm:max-w-[600px]" : ""
+                      }`}
                     >
                       {showReactionFor === message.id && (
                         <ReactionSelector
@@ -290,12 +302,13 @@ const ChatContainer = ({
                       {/* RENDER ẢNH */}
                       {images.length > 0 && (
                         <div
-                          className={`grid gap-1 mb-2 ${images.length === 1
-                            ? "grid-cols-1"
-                            : images.length === 2
+                          className={`grid gap-1 mb-2 ${
+                            images.length === 1
+                              ? "grid-cols-1"
+                              : images.length === 2
                               ? "grid-cols-2"
                               : "grid-cols-3"
-                            }`}
+                          }`}
                         >
                           {images.map((url, idx) => (
                             <div
@@ -306,10 +319,11 @@ const ChatContainer = ({
                               <img
                                 src={url}
                                 alt="Attachment"
-                                className={`object-cover w-full h-full ${images.length === 1
-                                  ? "max-h-[300px]"
-                                  : "aspect-square"
-                                  }`}
+                                className={`object-cover w-full h-full ${
+                                  images.length === 1
+                                    ? "max-h-[300px]"
+                                    : "aspect-square"
+                                }`}
                                 loading="lazy"
                               />
                             </div>
@@ -320,27 +334,31 @@ const ChatContainer = ({
                       {/* RENDER FILE */}
                       {files.length > 0 && (
                         <div className="flex flex-col gap-2 mb-2">
-                          {files.map((url, idx) => {
-                            const fileName =
-                              url.split("/").pop() || "Attached File";
+                          {files.map((fileItem, idx) => {
+                            const rawUrl = typeof fileItem === "string" ? fileItem : fileItem?.url || "";
+                            const urlNoQuery = rawUrl.split("?")[0];
+                            const decodedName = decodeURIComponent(urlNoQuery.split("/").pop() || fileItem?.name || "Attached File");
+                            const href = rawUrl || "#";
+
                             return (
                               <a
                                 key={`file-${idx}`}
-                                href={url}
-                                download
+                                href={href}
+                                download={decodedName}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className={`flex items-center gap-3 p-3 rounded-lg transition-colors border border-transparent ${isMe
-                                  ? "bg-primary-content/10 hover:bg-primary-content/20 text-primary-content"
-                                  : "bg-base-100 hover:bg-base-200 text-base-content border-base-300"
-                                  }`}
+                                className={`flex items-center gap-3 p-3 rounded-lg transition-colors border border-transparent ${
+                                  isMe
+                                    ? "bg-primary-content/10 hover:bg-primary-content/20 text-primary-content"
+                                    : "bg-base-100 hover:bg-base-200 text-base-content border-base-300"
+                                }`}
                               >
                                 <div className="p-2 bg-base-100 rounded-full text-primary shrink-0">
                                   <FileText size={20} />
                                 </div>
                                 <div className="flex flex-col overflow-hidden min-w-0">
-                                  <span className="text-sm font-medium truncate max-w-[150px]">
-                                    {fileName}
+                                  <span className="text-sm font-medium truncate max-w-[200px]">
+                                    {decodedName}
                                   </span>
                                   <span className="text-xs opacity-70 flex items-center gap-1">
                                     Download <Download size={10} />
@@ -353,7 +371,7 @@ const ChatContainer = ({
                       )}
 
                       {message.content && (
-                        <p className="break-words leading-relaxed">
+                        <p className="text-sm sm:text-base leading-relaxed break-all whitespace-pre-wrap overflow-hidden">
                           {message.content}
                         </p>
                       )}
@@ -368,8 +386,9 @@ const ChatContainer = ({
                               messageId: message.id,
                             })
                           }
-                          className={`absolute -bottom-3 cursor-pointer hover:scale-105 active:scale-95 transition-transform ${isMe ? "right-2" : "left-2"
-                            } flex items-center gap-0.5 bg-base-100 border border-base-300 rounded-full px-1.5 py-0.5 shadow-md z-10`}
+                          className={`absolute -bottom-3 cursor-pointer hover:scale-105 active:scale-95 transition-transform ${
+                            isMe ? "right-2" : "left-2"
+                          } flex items-center gap-0.5 bg-base-100 border border-base-300 rounded-full px-1.5 py-0.5 shadow-md z-10`}
                         >
                           {Array.from(
                             new Set(
@@ -412,7 +431,9 @@ const ChatContainer = ({
 
                   <div className="chat-footer mb-1 opacity-50 mt-1">
                     <span className="text-xs ml-1">
-                      {formatMessageTimestamp(message.createdAt || message.timestamp)}
+                      {formatMessageTimestamp(
+                        message.createdAt || message.timestamp
+                      )}
                     </span>
                   </div>
                 </div>
