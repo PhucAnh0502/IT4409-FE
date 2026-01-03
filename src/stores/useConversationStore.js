@@ -143,31 +143,62 @@ export const useConversationStore = create((set, get) => ({
 ,
 
     appendMessage: (conversationId, message) => {
-        if (!message) return;
-        
-        set((state) => {
-            const currentMessages = state.messages || [];
-            const messages = state.selectedConversation === conversationId 
-                ? [...currentMessages, message] 
-                : currentMessages;
+        if (!message || !conversationId) return;
 
-            let conversations = state.conversations || [];
-            if (!conversationId) return { messages, conversations };
-            
-            const idx = conversations.findIndex((c) => c?.id === conversationId);
+        set((state) => {
+            const cid = String(conversationId);
+            const sid = String(state.selectedConversation);
+            const isCurrentChat = sid === cid;
+
+            const normalizedMessage = {
+                reactions: message.reactions || [],
+                ...message,
+                id: message.id || message.messageId || message.MessageId || message._id,
+                messageId: message.messageId || message.MessageId || message.id || message._id,
+                createdAt: message.createdAt || message.CreatedAt || message.timestamp || message.Timestamp || new Date().toISOString(),
+            };
+
+            const updatedMessages = isCurrentChat
+                ? [...state.messages, normalizedMessage]
+                : state.messages;
+
+            let updatedConversations = [...state.conversations];
+            const idx = updatedConversations.findIndex((c) =>
+                String(c.id) === cid || String(c._id) === cid || String(c.conversationId) === cid
+            );
+
             if (idx !== -1) {
-                const conv = { ...conversations[idx] };
-                conv.lastMessageContent = message.content;
-                conv.lastMessageTime = message.createdAt;
-                conv.lastMessageSenderAvatarUrl = message.senderAvatarUrl;
-                conv.isRead = false;
-                conversations = [conv, ...conversations.slice(0, idx), ...conversations.slice(idx + 1)];
+                const updatedConv = {
+                    ...updatedConversations[idx],
+                    lastMessageContent: normalizedMessage.content || (normalizedMessage.mediaUrls?.length > 0 ? "[Media]" : ""),
+                    lastMessageTime: normalizedMessage.createdAt || normalizedMessage.timestamp || normalizedMessage.Timestamp || new Date().toISOString(),
+                    lastMessageSenderAvatarUrl: normalizedMessage.senderAvatarUrl,
+                    isRead: isCurrentChat,
+                };
+
+                updatedConversations.splice(idx, 1);
+                updatedConversations.unshift(updatedConv);
+            } else {
+                updatedConversations = [
+                    {
+                        id: conversationId,
+                        conversationId,
+                        name: normalizedMessage.receiverUserName || normalizedMessage.senderUserName || "New conversation",
+                        avatarUrl: normalizedMessage.receiverAvartarUrl || normalizedMessage.receiverAvatarUrl || normalizedMessage.senderAvatarUrl,
+                        lastMessageContent: normalizedMessage.content || (normalizedMessage.mediaUrls?.length > 0 ? "[Media]" : ""),
+                        lastMessageTime: normalizedMessage.createdAt || normalizedMessage.timestamp || normalizedMessage.Timestamp || new Date().toISOString(),
+                        isRead: isCurrentChat,
+                    },
+                    ...updatedConversations,
+                ];
             }
 
-            return { messages, conversations };
+            return {
+                messages: updatedMessages,
+                conversations: updatedConversations,
+            };
         });
-    }
-,
+    },
 
     sendMessage: async (data) => {
         try {
@@ -190,7 +221,15 @@ export const useConversationStore = create((set, get) => ({
         const  { messageId, reactionType, userId, action } = payload;
         set((state) => ({
             messages: state.messages.map((msg) => {
-                if (msg.id !== messageId) return msg;
+                const sameId =
+                    msg.id === messageId ||
+                    msg.messageId === messageId ||
+                    msg.MessageId === messageId ||
+                    String(msg.id) === String(messageId) ||
+                    String(msg.messageId) === String(messageId) ||
+                    String(msg.MessageId) === String(messageId);
+
+                if (!sameId) return msg;
 
                 let updatedReactions = [...(msg.reactions || [])];
 

@@ -59,7 +59,7 @@ const useSignalR = (hubUrl) => {
                 
                 retryCountRef.current = 0;
             } catch (error) {
-                console.warn("SignalR Connection failed:", error?.message);
+                // ignore
                 retryCountRef.current++;
                 
                 // Retry after delay if not at max retries

@@ -76,7 +76,7 @@ const AddMemberModal = ({
           isExiting
             ? "opacity-0 translate-y-2 scale-95"
             : "opacity-100 translate-y-0 scale-100"
-        }`}
+        } animate-slideInUp`}
       >
         {/* Header */}
         <div className="p-4 border-b border-base-300 flex justify-between items-center bg-base-200">
@@ -125,7 +125,7 @@ const AddMemberModal = ({
                   <div className="avatar">
                     <div className="w-10 rounded-full border border-base-300">
                       <img
-                        src={user.friendAvatarUrl || "/default-avatar.png"}
+                        src={user.friendAvatarUrl || "/default_avatar.jpg"}
                         alt="avt"
                       />
                     </div>

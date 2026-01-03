@@ -24,7 +24,7 @@ const ChatHeader = ({ close, message, toggleSidebar }) => {
   }, [selectedConversation, conversations]);
 
   const getConversationName = () => currentConversation?.name || "Conversation";
-  const getAvatarUrl = () => currentConversation?.avatarUrl || message?.receiverAvatarUrl || "/default-avatar.png";
+  const getAvatarUrl = () => currentConversation?.avatarUrl || message?.receiverAvatarUrl || "/default_avatar.jpg";
   const conversationName = getConversationName();
 
   const handleStartCall = async (isAudioOnly = false) => {
