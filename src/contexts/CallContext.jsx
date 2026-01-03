@@ -140,11 +140,17 @@ export const CallProvider = ({ children }) => {
               const hasSession = state.session != null;
               const hasEnded = state.endedAt != null;
 
+              // Calculate call age to filter out old/stale calls
+              const callAge = Date.now() - new Date(state.createdAt).getTime();
+              const MAX_CALL_AGE = 60000; // 60 seconds - only show recent calls
+
               
 
               // Check if call is active and waiting for this user to join
+              // Only show calls that are actively ringing and created recently (within 60 seconds)
               if (!hasEnded && state.createdBy?.id !== sanitized && !hasJoined &&
-                (state.callingState === 'ringing' || hasSession) &&
+                state.callingState === 'ringing' && // Must be ringing (removed hasSession check to prevent stale calls)
+                callAge < MAX_CALL_AGE && // Only show recent calls to prevent phantom calls from old sessions
                 !incomingCall && !outgoingCall && !activeCall) {
 
                 validCalls.push({
