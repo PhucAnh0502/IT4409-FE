@@ -23,7 +23,7 @@ const OutgoingCallModal = () => {
 
   if (!outgoingCall) return null;
 
-  const { receiverName, callType } = outgoingCall;
+  const { receiverName, callType, participants = [] } = outgoingCall;
   const isAudioOnly = callType === 'audio_room' || outgoingCall.isAudioOnly;
 
   return (
@@ -36,31 +36,24 @@ const OutgoingCallModal = () => {
 
       <div className="relative max-w-md w-full mx-4">
         <div className="bg-gradient-to-br from-gray-800/95 to-gray-900/95 backdrop-blur-2xl rounded-3xl shadow-2xl p-8 border border-gray-700/50">
-          {/* Receiver Avatar */}
+          {/* Avatars for all participants */}
           <div className="flex flex-col items-center mb-6">
-            <div className="relative">
-              {/* Animated ring effect - pulsing outward */}
-              <div className="absolute inset-0 w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 animate-ping opacity-20"></div>
-              <div className="absolute inset-0 w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 opacity-50 animate-pulse"></div>
-
-              {/* Avatar */}
-              <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-2xl">
-                <User className="w-16 h-16 text-white" />
-              </div>
-
-              {/* Call type indicator */}
-              <div className="absolute -bottom-2 -right-2 w-12 h-12 rounded-full bg-gradient-to-br from-gray-800 to-gray-900 border-4 border-gray-700 flex items-center justify-center shadow-lg">
-                {isAudioOnly ? (
-                  <Phone className="w-5 h-5 text-green-400" />
-                ) : (
-                  <Video className="w-5 h-5 text-blue-400" />
-                )}
-              </div>
+            <div className="flex flex-wrap gap-2 justify-center mb-2">
+              {participants.length > 0 ? participants.map((p, idx) => (
+                <div key={p.userId || idx} className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-2xl">
+                  <User className="w-6 h-6 text-white" />
+                </div>
+              )) : (
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-2xl">
+                  <User className="w-16 h-16 text-white" />
+                </div>
+              )}
             </div>
-
-            {/* Receiver Name */}
-            <h2 className="text-4xl font-bold text-white mt-6 mb-2 text-center">
-              {receiverName || 'Someone'}
+            {/* Names of all participants */}
+            <h2 className="text-2xl font-bold text-white mt-2 mb-2 text-center">
+              {participants.length > 0
+                ? participants.map((p) => p.name).join(', ')
+                : (receiverName || 'Someone')}
             </h2>
 
             {/* Call Type Badge */}

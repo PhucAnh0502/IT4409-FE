@@ -21,12 +21,12 @@ export const getUserInfo = async (userId) => {
 
     // Check cache first
     if (userCache.has(userId)) {
-        console.log('getUserInfo: returning cached data for', userId);
+        
         return userCache.get(userId);
     }
 
     try {
-        console.log('getUserInfo: fetching from API for userId:', userId);
+        
 
         const response = await authAxiosInstance.get(API.USER.GET_USER(userId));
 
@@ -41,7 +41,6 @@ export const getUserInfo = async (userId) => {
 
             // Cache the result
             userCache.set(userId, userInfo);
-            console.log('getUserInfo: cached data for', userId, userInfo);
 
             return userInfo;
         }
@@ -71,9 +70,7 @@ export const getUserName = async (userId) => {
 export const clearUserCache = (userId = null) => {
     if (userId) {
         userCache.delete(userId);
-        console.log('Cleared user cache for:', userId);
     } else {
         userCache.clear();
-        console.log('Cleared all user cache');
     }
 };

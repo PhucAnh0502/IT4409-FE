@@ -130,9 +130,23 @@
 /* Participant view styling */
 .str-video__participant-view {
   border-radius: 0.5rem;
+  width: 100%;
+  height: 100%;
+  position: relative;
 }
 
-/* Video container */
-.str-video__video {
-  object-fit: cover;
+/* Video container - ensure full coverage */
+.str-video__video-container,
+.str-video__video-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+}
+
+/* Video element - fill and cover */
+.str-video__video,
+.str-video__participant-view video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
 }

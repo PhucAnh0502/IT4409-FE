@@ -47,7 +47,7 @@ const ParticipantPattern = ({ participant, isCurrentUser, isAudioOnly }) => {
               : participantId
         );
       } catch (error) {
-        console.error(`Lỗi lấy thông tin user ${participantId}:`, error);
+        
         setDisplayName('Error');
       }
     };
@@ -90,6 +90,11 @@ const ParticipantPattern = ({ participant, isCurrentUser, isAudioOnly }) => {
           <ParticipantView
             participant={participant}
             ParticipantViewUI={null}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover'
+            }}
           />
         </div>
       ) : (
@@ -125,7 +130,7 @@ const ActiveCallModal = () => {
   const isAudioOnly = activeCall?.state?.custom?.isAudioOnly || false;
   const [isVideoOn, setIsVideoOn] = useState(!isAudioOnly);
 
-  // Disable camera if audio-only call
+  // Disable camera if audio-only call, enable if video call
   useEffect(() => {
     if (!activeCall) return;
 
@@ -134,6 +139,18 @@ const ActiveCallModal = () => {
     if (isAudio) {
       activeCall.camera.disable().catch(err => console.error('Error disabling camera:', err));
       setIsVideoOn(false);
+    } else {
+      // For video calls: explicitly enable camera and sync state
+      activeCall.camera.enable()
+        .then(() => {
+          setIsVideoOn(true);
+          
+        })
+        .catch(err => {
+          
+          // If camera fails to enable, set state to false
+          setIsVideoOn(false);
+        });
     }
   }, [activeCall]);
 
@@ -218,14 +235,12 @@ const ActiveCallModal = () => {
 
   // Get and sort participants - current user first
   const participants = activeCall.state?.participants || [];
-  // Xóa phần tử đầu tiên (current user) khỏi mảng participants
-  const filteredParticipants = participants.slice(1);
-
   const currentUserId = getUserIdFromToken();
-  console.log('Participants after removing first:', filteredParticipants, currentUserId);
 
-  // Sort: current user first, then others
-  const sortedParticipants = [...filteredParticipants].sort((a, b) => {
+  
+
+  // Sort: current user first, then others (show all participants)
+  const sortedParticipants = [...participants].sort((a, b) => {
     const aId = sanitizeUserId(a.userId || a.user_id || '');
     const bId = sanitizeUserId(b.userId || b.user_id || '');
     const currentSanitized = sanitizeUserId(currentUserId || '');
@@ -234,6 +249,23 @@ const ActiveCallModal = () => {
     if (bId === currentSanitized) return 1;
     return 0;
   });
+
+  // Calculate grid columns based on participant count
+  const getGridClass = (count) => {
+    if (count === 1) return 'grid-cols-1 max-w-2xl mx-auto';
+    if (count === 2) return 'grid-cols-2';
+    if (count <= 4) return 'grid-cols-2'; // 2x2 grid for 3-4 participants
+    if (count <= 6) return 'grid-cols-3'; // 2x3 grid for 5-6 participants
+    if (count <= 9) return 'grid-cols-3'; // 3x3 grid for 7-9 participants
+    return 'grid-cols-4'; // 4 columns for 10+ participants
+  };
+
+  // Reduce gap for many participants
+  const getGapClass = (count) => {
+    if (count <= 4) return 'gap-6';
+    if (count <= 6) return 'gap-4';
+    return 'gap-3';
+  };
 
   return (
     <div className="fixed inset-0 z-[10000] bg-gray-900">
@@ -276,17 +308,17 @@ const ActiveCallModal = () => {
             </div>
 
             {/* Participants Grid */}
-            <div className="flex-1 flex items-center justify-center p-6 pt-32 pb-32">
-              <div className="w-full max-w-7xl mx-auto">
-                <div className={`grid gap-6 ${sortedParticipants.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' : 'grid-cols-2'}`}>
+            <div className="flex-1 flex items-start justify-center p-6 pt-32 pb-64 overflow-y-auto">
+              <div className="w-full max-w-7xl mx-auto h-auto flex items-start justify-center">
+                <div className={`grid ${getGridClass(sortedParticipants.length)} ${getGapClass(sortedParticipants.length)} w-full`}>
                   {sortedParticipants.map((participant) => {
                     const participantId = sanitizeUserId(participant.userId || participant.user_id || '');
                     const currentSanitized = sanitizeUserId(currentUserId || '');
                     const isCurrentUser = participantId === currentUserId;
-
+                    // fix: use unique key (userId or fallback)
                     return (
                       <ParticipantPattern
-                        key={participant.userName}
+                        key={participantId || participant.userName || Math.random()}
                         participant={participant}
                         isCurrentUser={isCurrentUser}
                         isAudioOnly={isAudioOnly}

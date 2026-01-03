@@ -52,7 +52,7 @@ export const useAuthStore = create((set) => ({
         set({ isSigningUp: true });
         try {
             const res = await publicAxiosInstance.post(API.AUTH.REGISTER, data);
-            console.log(res);
+            
             toast.success("Signed up successfully");
         } catch (error) {
             toast.error(error?.message || "Error in sign up");

@@ -15,7 +15,7 @@ export const getStreamToken = async (userId) => {
     const tokenMap = data?.Token || data?.token;
 
     if (!tokenMap) {
-      console.error('❌ Cấu trúc Response không khớp:', data);
+      console.error(' Cấu trúc Response không khớp:', data);
       throw new Error('Không tìm thấy dữ liệu Token trong phản hồi từ server');
     }
 
@@ -35,7 +35,7 @@ export const getStreamToken = async (userId) => {
     return token.replace(/"/g, '').trim(); // Xóa dấu ngoặc kép nếu có
 
   } catch (error) {
-    console.error('❌ Error in getStreamToken:', error);
+    console.error(' Error in getStreamToken:', error);
     throw error;
   }
 };

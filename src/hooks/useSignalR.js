@@ -12,7 +12,7 @@ const useSignalR = (hubUrl) => {
     useEffect(() => {
         // Không kết nối nếu không có token hoặc URL
         if (!authToken || !hubUrl) {
-            console.log("SignalR: No token or hubUrl found, skipping connection");
+            
             return;
         }
 
@@ -33,16 +33,16 @@ const useSignalR = (hubUrl) => {
         
         // Handle reconnection events
         newConnection.onreconnecting((error) => {
-            console.log("SignalR reconnecting...", error?.message);
+            console.warn("SignalR reconnecting:", error?.message);
         });
 
         newConnection.onreconnected(() => {
-            console.log("SignalR reconnected");
+            
             retryCountRef.current = 0;
         });
 
         newConnection.onclose((error) => {
-            console.log("SignalR connection closed", error?.message);
+            console.warn("SignalR closed:", error?.message);
         });
         
         connectionRef.current = newConnection;
@@ -50,11 +50,13 @@ const useSignalR = (hubUrl) => {
 
         const startConnection = async () => {
             if (retryCountRef.current >= maxRetries) {
+                
                 return;
             }
 
             try {
                 await newConnection.start();
+                
                 retryCountRef.current = 0;
             } catch (error) {
                 // ignore
@@ -63,7 +65,7 @@ const useSignalR = (hubUrl) => {
                 // Retry after delay if not at max retries
                 if (retryCountRef.current < maxRetries) {
                     const delay = 2000 * Math.pow(2, retryCountRef.current);
-                    console.log(`SignalR: Retrying in ${delay/1000}s (attempt ${retryCountRef.current}/${maxRetries})`);
+                    
                     setTimeout(startConnection, delay);
                 }
             }
@@ -74,7 +76,7 @@ const useSignalR = (hubUrl) => {
         return () => {
             if (connectionRef.current) {
                 connectionRef.current.stop()
-                    .then(() => console.log("SignalR disconnected"))
+                    .then(() => {})
                     .catch((err) => console.warn("SignalR disconnect error:", err?.message));
             }
         }
