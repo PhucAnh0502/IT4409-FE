@@ -1,9 +1,4 @@
-  // Fallback: Nếu incomingCall đã kết thúc (hasEnded: true) thì tự động tắt modal
-  useEffect(() => {
-    if (incomingCall && incomingCall.state?.hasEnded) {
-      setIncomingCall(null);
-    }
-  }, [incomingCall]);
+
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { StreamVideoClient } from '@stream-io/video-react-sdk';
 import { getStreamToken } from '../lib/tokenService';
@@ -14,6 +9,8 @@ import toast from 'react-hot-toast';
 import { useAuthStore } from '../stores/useAuthStore';
 
 const CallContext = createContext(null);
+
+
 
 export const useCall = () => {
   const ctx = useContext(CallContext);
@@ -49,6 +46,13 @@ export const CallProvider = ({ children }) => {
   useEffect(() => {
     activeCallRef.current = activeCall;
   }, [activeCall]);
+
+    // Fallback: Nếu incomingCall đã kết thúc (hasEnded: true) thì tự động tắt modal
+  useEffect(() => {
+    if (incomingCall && incomingCall.state?.hasEnded) {
+      setIncomingCall(null);
+    }
+  }, [incomingCall]);
 
   // Initialize StreamVideoClient
   useEffect(() => {
