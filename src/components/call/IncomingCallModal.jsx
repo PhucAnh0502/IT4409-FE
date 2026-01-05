@@ -27,7 +27,7 @@ const IncomingCallModal = () => {
         rejectCall();
       }
     };
-  }, []);
+  }, [incomingCall, rejectCall]);
 
   // Check if it's a group call (>2 participants)
   const isGroupCall = incomingCall?.participantCount > 2;

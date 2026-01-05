@@ -47,7 +47,7 @@ export const CallProvider = ({ children }) => {
     activeCallRef.current = activeCall;
   }, [activeCall]);
 
-    // Fallback: Nếu incomingCall đã kết thúc (hasEnded: true) thì tự động tắt modal
+  // Fallback: Nếu incomingCall đã kết thúc (hasEnded: true) thì tự động tắt modal
   useEffect(() => {
     if (incomingCall && incomingCall.state?.hasEnded) {
       setIncomingCall(null);
@@ -57,7 +57,7 @@ export const CallProvider = ({ children }) => {
   // Initialize StreamVideoClient
   useEffect(() => {
     const authToken = getToken();
-    
+
 
     if (!authToken || !currentUserId) {
       console.warn('CallContext: Missing auth token or currentUserId', {
@@ -75,7 +75,7 @@ export const CallProvider = ({ children }) => {
 
         const streamToken = await getStreamToken(currentUserId);
 
-       
+
 
         if (!streamToken) {
           console.error('Stream token is null or undefined');
@@ -100,20 +100,20 @@ export const CallProvider = ({ children }) => {
           token: streamToken,
         });
 
-        
+
 
         if (!mounted) {
-          
+
           return;
         }
 
         setClient(videoClient);
-        
+
 
         // Check for any pending/ringing calls that may have been initiated while user was offline
         const checkForPendingCalls = async () => {
           try {
-            
+
 
             // Query for calls where current user is a member
             const { calls } = await videoClient.queryCalls({
@@ -124,7 +124,7 @@ export const CallProvider = ({ children }) => {
               limit: 10,
             });
 
-           
+
 
             // Collect all valid pending calls
             const validCalls = [];
@@ -144,7 +144,7 @@ export const CallProvider = ({ children }) => {
               const callAge = Date.now() - new Date(state.createdAt).getTime();
               const MAX_CALL_AGE = 60000; // 60 seconds - only show recent calls
 
-              
+
 
               // Check if call is active and waiting for this user to join
               // Only show calls that are actively ringing and created recently (within 60 seconds)
@@ -163,7 +163,7 @@ export const CallProvider = ({ children }) => {
               }
             }
 
-            
+
 
             // Sort valid calls by createdAt ascending (oldest first)
             validCalls.sort((a, b) => a.createdAt - b.createdAt);
@@ -171,7 +171,7 @@ export const CallProvider = ({ children }) => {
             // Show the first (oldest) call
             if (validCalls.length > 0) {
               const firstCall = validCalls[0];
-              
+
               setIncomingCall({
                 ...firstCall.call,
                 callerName: firstCall.callerName,
@@ -191,7 +191,7 @@ export const CallProvider = ({ children }) => {
         videoClient.on('call.ring', (ev) => {
           // Reject if user is already busy with any call (use refs to get latest state)
           if (incomingCallRef.current || outgoingCallRef.current || activeCallRef.current) {
-            
+
             return;
           }
 
@@ -242,7 +242,7 @@ export const CallProvider = ({ children }) => {
         } catch (e) { }
       }
       if (incomingCall) {
-        try { await incomingCall.leave({ reject: true }); } catch (e) { }
+        try { await incomingCall.reject(); } catch (e) { }
       }
     };
 
@@ -286,7 +286,7 @@ export const CallProvider = ({ children }) => {
     const onParticipantJoined = (ev) => {
       if (hasJoinedRef.current) return;
 
-     
+
 
       // GetStream structure: ev.participant.user.id (nested, not ev.participant.user_id)
       const participantUserId = ev.participant?.user?.id || ev.participant?.userId || ev.user?.id;
@@ -294,7 +294,7 @@ export const CallProvider = ({ children }) => {
       const sanitizedParticipantId = sanitizeUserId(participantUserId);
       const sanitizedCurrentUserId = sanitizeUserId(currentUserId);
 
-      
+
 
       if (!participantUserId) {
         console.error('Could not extract participant user ID from event');
@@ -303,12 +303,12 @@ export const CallProvider = ({ children }) => {
 
       //  Nếu chính mình join → bỏ qua
       if (sanitizedParticipantId === sanitizedCurrentUserId) {
-        
+
         return;
       }
 
       //  Receiver đã join
-      
+
       hasJoinedRef.current = true;
       clearTimeout(timeout);
 
@@ -334,7 +334,7 @@ export const CallProvider = ({ children }) => {
         const sanitizedCurrentUserId = sanitizeUserId(currentUserId);
         const other = participants.find(p => sanitizeUserId(p.userId) !== sanitizedCurrentUserId);
         if (other) {
-          
+
           hasJoinedRef.current = true;
           clearTimeout(timeout);
           await call.join();
@@ -360,6 +360,27 @@ export const CallProvider = ({ children }) => {
       }
     };
 
+    // Listen for call.rejected event - when receiver explicitly rejects (1-on-1 call only)
+    const onCallRejected = async (ev) => {
+      const rejectedBy = ev.user?.id;
+
+      // Only handle rejection for 1-on-1 calls
+      const participantCount = call.state?.custom?.participantCount || 2;
+      if (participantCount === 2) {
+        clearTimeout(timeout);
+        clearTimeout(fallbackCheck);
+        setOutgoingCall(null);
+        toast.error('Người nhận đã từ chối cuộc gọi');
+
+        // End the call from caller side
+        try {
+          await call.endCall();
+        } catch (e) {
+          console.error('Error ending call after rejection:', e);
+        }
+      }
+    };
+
     const onCallEnded = () => {
       clearTimeout(timeout);
       clearTimeout(fallbackCheck);
@@ -369,6 +390,7 @@ export const CallProvider = ({ children }) => {
 
     call.on('call.session_participant_joined', onParticipantJoined);
     call.on('call.session_participant_left', onParticipantLeft);
+    call.on('call.rejected', onCallRejected);
     call.on('call.ended', onCallEnded);
 
     return () => {
@@ -376,6 +398,7 @@ export const CallProvider = ({ children }) => {
       clearTimeout(fallbackCheck);
       call.off('call.session_participant_joined', onParticipantJoined);
       call.off('call.session_participant_left', onParticipantLeft);
+      call.off('call.rejected', onCallRejected);
       call.off('call.ended', onCallEnded);
     };
   }, [client, outgoingCall]);
@@ -386,7 +409,7 @@ export const CallProvider = ({ children }) => {
 
     const timeout = setTimeout(async () => {
       try {
-        await incomingCall.leave({ reject: true });
+        await incomingCall.reject();
       } catch (e) {
         console.error('Error rejecting call on timeout:', e);
       }
@@ -517,8 +540,12 @@ export const CallProvider = ({ children }) => {
       return;
     }
     try {
-      await incomingCall.leave({ reject: true });
-    } catch (e) { }
+      // Use reject() instead of leave({ reject: true }) per GetStream best practices
+      // This allows caller to receive call.rejected event and handle properly
+      await incomingCall.reject();
+    } catch (e) {
+      console.error('Error rejecting call:', e);
+    }
     setIncomingCall(null);
   }, [incomingCall]);
 
