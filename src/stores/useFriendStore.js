@@ -72,7 +72,7 @@ export const useFriendStore = create((set) => ({
             return friendsWithDetails;
         } catch (error) {
             console.error("Error fetching friends list:", error);
-            toast.error(error?.message || "Error fetching friends list");
+            toast.error(error?.error || "Error fetching friends list");
             set({ friends: [] });
             return [];
         } finally {
@@ -90,7 +90,7 @@ export const useFriendStore = create((set) => ({
             toast.success(res?.message || "Friend request sent successfully");
             return res;
         } catch (error) {
-            toast.error(error?.message || "Error sending friend request");
+            toast.error(error?.error || "Error sending friend request");
             throw error;
         }
     },
@@ -101,7 +101,7 @@ export const useFriendStore = create((set) => ({
             const res = await authAxiosInstance.get(API.FRIEND.GET_REQUEST(requestId));
             return res;
         } catch (error) {
-            toast.error(error?.message || "Error fetching friend request");
+            toast.error(error?.error || "Error fetching friend request");
             throw error;
         }
     },
@@ -113,7 +113,7 @@ export const useFriendStore = create((set) => ({
             toast.success(res?.message || "Friend request cancelled");
             return res;
         } catch (error) {
-            toast.error(error?.message || "Error deleting friend request");
+            toast.error(error?.error || "Error deleting friend request");
             throw error;
         }
     },
@@ -125,7 +125,7 @@ export const useFriendStore = create((set) => ({
             toast.success("Friend request accepted");
             return res;
         } catch (error) {
-            toast.error(error?.message || "Error accepting friend request");
+            toast.error(error?.error || "Error accepting friend request");
             throw error;
         }
     },
@@ -138,7 +138,7 @@ export const useFriendStore = create((set) => ({
             set({ receivedRequests: res });
             return res;
         } catch (error) {
-            toast.error(error?.message || "Error fetching received requests");
+            toast.error(error?.error || "Error fetching received requests");
             throw error;
         } finally {
             set({ isLoadingRequests: false });
@@ -153,7 +153,7 @@ export const useFriendStore = create((set) => ({
             set({ sentRequests: res });
             return res;
         } catch (error) {
-            toast.error(error?.message || "Error fetching sent requests");
+            toast.error(error?.error || "Error fetching sent requests");
             throw error;
         } finally {
             set({ isLoadingRequests: false });

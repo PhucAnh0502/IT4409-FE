@@ -43,7 +43,7 @@ export const useAuthStore = create((set) => ({
             toast.success("Logged in successfully");
             return res;
         } catch (error) {
-            toast.error(error?.message || "Error in login");
+            toast.error(error?.error || "Error in login");
         } finally {
             set({ isLoggingIn: false });
         }
@@ -55,7 +55,7 @@ export const useAuthStore = create((set) => ({
             
             toast.success("Signed up successfully");
         } catch (error) {
-            toast.error(error?.message || "Error in sign up");
+            toast.error(error?.error || "Error in sign up");
         } finally {
             set({ isSigningUp: false });
         }
@@ -76,7 +76,7 @@ export const useAuthStore = create((set) => ({
             const res = await publicAxiosInstance.post(API.AUTH.FORGOT_PASSWORD, data);
             toast.success(res.message || "Reset email sent successfully");
         } catch (error) {
-            toast.error(error?.message || "Error in getting reset email");
+            toast.error(error?.error || "Error in getting reset email");
         } finally {
             set({ isGettingResetEmail: false });
         }
@@ -87,7 +87,7 @@ export const useAuthStore = create((set) => ({
             const res = await publicAxiosInstance.post(API.AUTH.RESET_PASSWORD, data);
             toast.success(res.message || "Change password successfully");
         } catch (error) {
-            toast.error(error?.message || "Error in resetting password");
+            toast.error(error?.error || "Error in resetting password");
         } finally {
             set({ isResettingPassword: false });
         }
@@ -105,7 +105,7 @@ export const useAuthStore = create((set) => ({
             toast.success("Password changed successfully!");
             return res;
         } catch (error) {
-            toast.error(error?.message || "Error in changing password");
+            toast.error(error?.error || "Error in changing password");
         } finally {
             set({ isChangingPassword: false });
         }

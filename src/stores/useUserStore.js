@@ -16,7 +16,7 @@ export const useUserStore = create((set) => ({
             set({ user: res });
             return res;
         } catch (error) {
-            toast.error(error?.message || "Error fetching user data");
+            toast.error(error?.error || "Error fetching user data");
             throw error;
         } finally {
             set({ isLoadingUser: false });
@@ -35,7 +35,7 @@ export const useUserStore = create((set) => ({
             }
             return res.userList?.data || [];
         } catch (error) {
-            toast.error(error?.message || "Error fetching users");
+            toast.error(error?.error || "Error fetching users");
             throw error;
         } finally {
             set({ isLoadingUser: false });
@@ -52,7 +52,7 @@ export const useUserStore = create((set) => ({
             toast.success("Profile updated successfully");
             return res;
         } catch (error) {
-            toast.error(error?.message || "Error updating profile");
+            toast.error(error?.error || "Error updating profile");
             throw error;
         } finally {
             set({ isUpdatingUser: false });

@@ -114,7 +114,7 @@ const ChangePasswordSection = ({ userId }) => {
           currentPassword: "Current password is incorrect"
         });
       } else {
-        toast.error(error?.message || "Failed to change password");
+        toast.error(error?.error || "Failed to change password");
       }
     }
   };

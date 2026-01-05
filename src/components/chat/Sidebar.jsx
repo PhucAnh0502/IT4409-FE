@@ -108,7 +108,7 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
   const openFriendModal = () => {
     setIsFriendModalOpen(true);
     getFriendsList().catch((error) => {
-      toast.error(error?.message || "Failed to load friends");
+      toast.error(error?.error || "Failed to load friends");
     });
   };
 
@@ -157,7 +157,7 @@ const Sidebar = ({ selectedConversation, setSelectedConversation, onSelect }) =>
       toast.success("Created a new conversation");
       return newConvId;
     } catch (error) {
-      toast.error(error?.message || "Failed to create conversation");
+      toast.error(error?.error || "Failed to create conversation");
       return null;
     }
   };

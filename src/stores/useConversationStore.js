@@ -32,7 +32,7 @@ export const useConversationStore = create((set, get) => ({
             });
             return response.url;
         } catch (error) {
-            toast.error(error?.message || "File upload failed");
+            toast.error(error?.error || "File upload failed");
             throw error;
         } finally {
             set({ isUploading: false });
@@ -46,7 +46,7 @@ export const useConversationStore = create((set, get) => ({
             const response = await authAxiosInstance.get(API.CONVERSATION.ALL_CONVERSATIONS);
             set({ conversations: response });
         } catch (error) {
-            toast.error(error?.message);
+            toast.error(error?.error || "Error in getting conversations");
         } finally {
             set({ isGettingConversations: false });
         }
@@ -61,7 +61,7 @@ export const useConversationStore = create((set, get) => ({
             }));
             return response;
         } catch (error) {
-            toast.error(error?.message || "Error creating conversation");
+            toast.error(error?.error || "Error creating conversation");
             throw error;
         } finally {
             set({ isCreatingConversation: false });
@@ -83,7 +83,7 @@ export const useConversationStore = create((set, get) => ({
 
         return newConversation;
         } catch (error) {
-            toast.error(error?.message || "Error creating conversation");
+            toast.error(error?.error || "Error creating conversation");
             throw error;
         } finally {
             set({ isCreatingConversation: false });
@@ -108,7 +108,7 @@ export const useConversationStore = create((set, get) => ({
                 hasMore: newMessages.length >= 20 
             });
         } catch (error) {
-            toast.error(error?.message || "Error in getting messages");
+            toast.error(error?.error || "Error in getting messages");
             set({ messages: [] });
         } finally {
             set({ isMessagesLoading: false });
@@ -135,7 +135,7 @@ export const useConversationStore = create((set, get) => ({
                 });
             }
         } catch (error) {
-            toast.error(error?.message || "Failed to load older messages");
+            toast.error(error?.error || "Failed to load older messages");
         } finally {
             set({ isLoadingMore: false });
         }
@@ -205,7 +205,7 @@ export const useConversationStore = create((set, get) => ({
             const response = await authAxiosInstance.post(API.MESSAGE.SEND_MESSAGE, data);
             console.log(response.message);
         } catch (error) {
-            toast.error(error?.message || "Failed to send message");
+            toast.error(error?.error || "Failed to send message");
         }
     },
 
@@ -213,7 +213,7 @@ export const useConversationStore = create((set, get) => ({
         try {
             await authAxiosInstance.post(API.MESSAGE.REACT_MESSAGE, data);
         } catch (error) {
-            toast.error(error?.message || "Failed to react to message");
+            toast.error(error?.error || "Failed to react to message");
         }    
     },
 
@@ -276,7 +276,7 @@ export const useConversationStore = create((set, get) => ({
             return response;
         } catch (error) {
             console.error("Error creating group:", error);
-            toast.error(error?.message || "Error creating group");
+            toast.error(error?.error || "Error creating group");
             throw error;
         } finally {
             set({ isCreatingGroup: false });
@@ -301,7 +301,7 @@ export const useConversationStore = create((set, get) => ({
             
             toast.success(response.message || "Member added to group successfully");
         } catch (error) {
-            toast.error(error?.message || "Error adding member to group");
+            toast.error(error?.error || "Error adding member to group");
         }
     },
 
@@ -323,7 +323,7 @@ export const useConversationStore = create((set, get) => ({
             
             toast.success(response.message || "Member removed from group successfully");
         } catch (error) {
-            toast.error(error?.message || "Error removing member from group");
+            toast.error(error?.error || "Error removing member from group");
         }
     },
 
@@ -334,7 +334,7 @@ export const useConversationStore = create((set, get) => ({
             
             toast.success(response.message || "Left group successfully");
         } catch (error) {
-            toast.error(error?.message || "Error leaving group");
+            toast.error(error?.error || "Error leaving group");
         }
     },
 
@@ -357,7 +357,7 @@ export const useConversationStore = create((set, get) => ({
             
             toast.success(response.message || "Group info updated successfully");
         } catch (error) {
-            toast.error(error?.message || "Error updating group info");
+            toast.error(error?.error || "Error updating group info");
         }
     },
 
@@ -394,7 +394,7 @@ export const useConversationStore = create((set, get) => ({
 
             toast.success(response?.message || "Group avatar updated successfully");
         } catch (error) {
-            toast.error(error?.message || "Error updating group avatar");
+            toast.error(error?.error || "Error updating group avatar");
             throw error;
         } finally {
             set({ isUpdatingGroupAvatar: false });
