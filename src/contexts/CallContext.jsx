@@ -33,6 +33,7 @@ export const CallProvider = ({ children }) => {
   const outgoingCallRef = useRef(null);
   const activeCallRef = useRef(null);
   const hasJoinedRef = useRef(false); // Track if receiver has joined
+  const callCreatedAtRef = useRef(null); // Track when outgoing call was created
 
   // Update refs whenever state changes
   useEffect(() => {
@@ -270,6 +271,7 @@ export const CallProvider = ({ children }) => {
 
     // Reset hasJoinedRef when outgoingCall starts
     hasJoinedRef.current = false;
+    callCreatedAtRef.current = Date.now(); // Track call creation time
 
     const timeout = setTimeout(async () => {
       if (!hasJoinedRef.current) {
@@ -360,25 +362,50 @@ export const CallProvider = ({ children }) => {
       }
     };
 
-    // Listen for call.rejected event - when receiver explicitly rejects (1-on-1 call only)
-    const onCallRejected = async (ev) => {
-      const rejectedBy = ev.user?.id;
+    // SAFE call.rejected handler with multiple guards
+    const onCallRejected = (ev) => {
+      console.log('[onCallRejected] Event fired', { ev, outgoingCall: outgoingCallRef.current });
 
-      // Only handle rejection for 1-on-1 calls
-      const participantCount = call.state?.custom?.participantCount || 2;
-      if (participantCount === 2) {
-        clearTimeout(timeout);
-        clearTimeout(fallbackCheck);
-        setOutgoingCall(null);
-        toast.error('Người nhận đã từ chối cuộc gọi');
-
-        // End the call from caller side
-        try {
-          await call.endCall();
-        } catch (e) {
-          console.error('Error ending call after rejection:', e);
-        }
+      // Guard 1: Only if we still have an outgoing call
+      if (!outgoingCallRef.current) {
+        console.log('[onCallRejected] Ignored: no outgoing call');
+        return;
       }
+
+      // Guard 2: Only if receiver hasn't joined yet
+      if (hasJoinedRef.current) {
+        console.log('[onCallRejected] Ignored: receiver already joined');
+        return;
+      }
+
+      // Guard 3: Minimum delay to ensure call is established (1 second)
+      const timeSinceCreation = Date.now() - callCreatedAtRef.current;
+      if (timeSinceCreation < 1000) {
+        console.log('[onCallRejected] Ignored: call too new', timeSinceCreation, 'ms');
+        return;
+      }
+
+      // Guard 4: Verify user ID exists
+      const rejecterId = ev.user?.id;
+      if (!rejecterId) {
+        console.log('[onCallRejected] Ignored: no user id in event');
+        return;
+      }
+
+      // Guard 5: ONLY apply to 1-on-1 calls (participantCount === 2)
+      // For group calls, rejection from one user should not end the call
+      const participantCount = call.state?.custom?.participantCount || 2;
+      if (participantCount !== 2) {
+        console.log('[onCallRejected] Ignored: group call (participantCount:', participantCount, ')');
+        return;
+      }
+
+      // All guards passed - handle rejection for 1-on-1 call
+      console.log('[onCallRejected] Processing 1-on-1 rejection from user:', rejecterId);
+      clearTimeout(timeout);
+      clearTimeout(fallbackCheck);
+      setOutgoingCall(null);
+      toast.error('Người nhận đã từ chối cuộc gọi');
     };
 
     const onCallEnded = () => {
@@ -390,10 +417,11 @@ export const CallProvider = ({ children }) => {
 
     call.on('call.session_participant_joined', onParticipantJoined);
     call.on('call.session_participant_left', onParticipantLeft);
-    call.on('call.rejected', onCallRejected);
+    call.on('call.rejected', onCallRejected); // Safe handler with guards
     call.on('call.ended', onCallEnded);
 
     return () => {
+      callCreatedAtRef.current = null;
       clearTimeout(timeout);
       clearTimeout(fallbackCheck);
       call.off('call.session_participant_joined', onParticipantJoined);
